@@ -1,0 +1,6 @@
+﻿build/**
+.vscode
+Model/**
+Analysis/**
+obj_splitter.cpp
+obj_splitter.exe

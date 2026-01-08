@@ -1,0 +1,330 @@
+#include "scene.h"
+#include "ui.h"
+#include "light.h"
+#include <cuda_runtime.h>
+#include <cuda_gl_interop.h>
+
+// Render kernel
+
+RenderSegment *renderSegments;
+RenderSegment *renderSegmentsBuffer;
+IntersectionInfo *intersections;
+IntersectionInfo *intersectionsBuffer;
+float *accumulator;
+int *segmentValidFlags;
+int *segmentPos;
+
+dim3 generateRayBlockSize(32, 32);
+dim3 renderBlockSize(128);
+dim3 gatherBlockSize(32, 32);
+dim3 generateRayGridSize;
+dim3 renderGridSize;
+dim3 gatherGridSize;
+
+
+__global__ void GenerateRayKernel(RenderSegment* segments, Camera* camera, Sampler* sampler, int width, int height)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i >= width || j >= height)
+        return; // Ensure we don't access out of bounds
+    int idx = j * width + i;
+    camera -> GeneratingRay(i, j, sampler, &segments[idx].ray);
+    segments[idx].index = idx;
+    segments[idx].remainingBounces = camera -> maxBounces; // Set the maximum number of bounces
+    segments[idx].color = Vec3f(0.0f, 0.0f, 0.0f);
+    segments[idx].weight = Vec3f(1.0f, 1.0f, 1.0f);
+    segments[idx].firstBounce = true; // Initialize first bounce flag
+}
+
+__device__ void AccumulateColor(int index, Vec3f color, float *accumulator)
+{
+    accumulator[index * 3 + 0] += color(0);
+    accumulator[index * 3 + 1] += color(1);
+    accumulator[index * 3 + 2] += color(2);
+}
+
+__device__ bool TraceRay(Ray &ray, BVH *bvh, IntersectionInfo &info)
+{
+    info.hitTime = FLOATMAX;
+    info.hit = false;
+    bool hit = bvh->IsIntersect(ray, info);
+    return hit;
+}
+
+__global__ void IntersectionKernel(RenderSegment *segments, BVH *bvh, IntersectionInfo *intersectionInfo, int numSegments, int *segmentValidFlags, float *accumulator)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= numSegments)
+        return;
+    Ray ray = segments[idx].ray; // Get the ray for this pixel
+    bool hit = TraceRay(ray, bvh, intersectionInfo[idx]);
+    if(!hit){
+        // If no hit, accumulate background color (black here)
+        int index = segments[idx].index;
+        AccumulateColor(index, segments[idx].color, accumulator);
+        segments[idx].remainingBounces = 0; // Terminate the path
+        segmentValidFlags[idx] = 0;
+        return;
+    }else {
+        segmentValidFlags[idx] = 1;
+    }
+}
+
+__device__ Light* SelectLight(Light* lights, int numLights, Sampler* sampler, int idx, float &pdf){
+    if(numLights == 0){
+        pdf = 1.0f;
+        return nullptr;
+    }
+    int lightIndex = static_cast<int>(sampler -> Get1D(idx) * numLights) % numLights;
+    pdf = 1.0f / numLights;
+    return &lights[lightIndex];
+}
+
+__device__ void PathTracing(RenderSegment &segment, BVH *bvh, IntersectionInfo &info, MeshData *meshData, Material *materials, Light* lights, int numLights, Sampler *sampler, float *accumulator, int *segmentValidFlags, float rr, int idx){
+    Material &material = materials[meshData[info.meshID].materialID];
+    Vec3f hitPoint = info.hitPoint;
+    Vec3f hitNormal = info.normal;
+    Vec2f uv = info.texCoord;
+    Vec3f wo = -segment.ray.direction; // wo为p -> eye方向, wi为p -> light方向
+
+    Vec3f brdf;
+
+    if(material.IsLight()){
+        if(segment.firstBounce){
+            segment.color += material.ke; // If it's the first bounce, add emission directly
+            segment.firstBounce = false;
+            segment.remainingBounces = 0;
+            segmentValidFlags[idx] = 0;
+            return ;
+        }else{
+            segmentValidFlags[idx] = 0;
+            segment.remainingBounces = 0; // Terminate the path if hitting light after first bounce
+            return ;
+        }
+    }
+
+    // Sample light(NEE)
+    float sampleLightPDF;
+    Light *light = SelectLight(lights, numLights, sampler, idx, sampleLightPDF);
+    if(light == nullptr){
+        printf("No lights in the scene!\n");
+        return ;
+    }
+    float sampleLightPointPDF;
+    TriangleSampleInfo sampleLightPointInfo;
+    light -> SamplePoint(sampleLightPointInfo, sampleLightPointPDF, sampler, idx);
+    
+    bool visible = light -> Visible(info, sampleLightPointInfo, bvh);
+    // bool visible = true;
+    if(visible){
+        Vec3f dirWi = (sampleLightPointInfo.position - hitPoint).normalized();
+        float r2 = (hitPoint - sampleLightPointInfo.position).squaredNorm();
+        float cosTheta = hitNormal.dot(dirWi);
+        float cosTheta2 = sampleLightPointInfo.normal.dot(-dirWi);
+        float pdfLight = sampleLightPDF * sampleLightPointPDF;
+        pdfLight = (r2 * pdfLight) / cosTheta2;
+        
+        Vec3f dirBrdf = material.Evaluate(wo, hitNormal, dirWi);
+        Vec3f dir_l = light -> emission.cwiseProduct(dirBrdf) * cosTheta / pdfLight;
+        // printf("visible light contribution: %f, %f, %f\n", dir_l(0), dir_l(1), dir_l(2));
+        segment.color += segment.weight.cwiseProduct(dir_l);
+    }
+    // return;
+
+    // indir
+    Vec3f indirWi;
+    float indirWiPdf;
+    material.Sample(wo, hitNormal, indirWi, indirWiPdf, sampler, idx);
+    brdf = material.Evaluate(wo, hitNormal, indirWi);
+    float indirCosTheta = hitNormal.dot(indirWi);
+    if(!(indirWiPdf < eps || indirCosTheta < 0)){
+        segment.weight = segment.weight.cwiseProduct(brdf) * indirCosTheta / indirWiPdf;
+    }else{
+        segment.remainingBounces = 0;
+        segmentValidFlags[idx] = 0;
+        return ;
+    }
+
+    // Russian roulette
+    float p = sampler -> Get1D(idx);
+    if(p > rr){
+        segment.remainingBounces = 0; // Terminate the path
+        segmentValidFlags[idx] = 0;
+        return ;
+    }
+
+    segment.weight /= rr;
+    segment.ray.origin = hitPoint + hitNormal * eps; 
+    segment.ray.direction = indirWi;
+
+    segment.firstBounce = false; // After the first bounce
+    segmentValidFlags[idx] = 1;
+}
+
+__global__ void ShadingKernel(RenderSegment *segments, BVH *bvh, IntersectionInfo *intersectionInfo, MeshData *meshData, Material *materials, Light *lights, int numLights, Sampler *sampler, float rr, int numSegments, float *accumulator, int *segmentValidFlags)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= numSegments)
+        return;
+    IntersectionInfo info = intersectionInfo[idx];
+    if(segments[idx].remainingBounces > 0){
+        PathTracing(segments[idx], bvh, info, meshData, materials, lights, numLights, sampler, accumulator, segmentValidFlags, rr, idx);
+    }
+    if(segmentValidFlags[idx] == 0)
+        AccumulateColor(segments[idx].index, segments[idx].color, accumulator);
+    segments[idx].remainingBounces--;
+}
+
+__global__ void GatherKernel(uchar4 *pixels, float *accumulator, int spp, int width, int height)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    if (i >= width || j >= height)
+        return; // Ensure we don't access out of bounds
+    int idx = j * width + i;
+    Vec3f color = Vec3f(accumulator[3 * idx] / spp, accumulator[3 * idx + 1] / spp, accumulator[3 * idx + 2] / spp);
+    j = height - j - 1; // Flip vertically for OpenGL
+    int segIndex = j * width + i;
+
+    pixels[segIndex] = make_uchar4(
+        static_cast<unsigned char>(fminf(fmaxf(color(0) * 255.0f, 0.0f), 255.0f)),
+        static_cast<unsigned char>(fminf(fmaxf(color(1) * 255.0f, 0.0f), 255.0f)),
+        static_cast<unsigned char>(fminf(fmaxf(color(2) * 255.0f, 0.0f), 255.0f)),
+        255);
+}
+
+int StreamCompaction(int* rayValid, int* rayIndex, int numRays)
+{
+	if (numRays == 0) return 0;
+	thrust::device_ptr<RenderSegment> segmentPtr(renderSegments), segmentBufferPtr(renderSegmentsBuffer);
+	thrust::device_ptr<IntersectionInfo> intersectionInfoPtr(intersections), intersectionInfoBufferPtr(intersectionsBuffer);
+	thrust::device_ptr<int> rayValidPtr(rayValid), rayIndexPtr(rayIndex);
+	thrust::exclusive_scan(rayValidPtr, rayValidPtr + numRays, rayIndexPtr);
+	int nextNumRays, tmp;
+	cudaMemcpy(&tmp, rayIndex + numRays - 1, sizeof(int), cudaMemcpyDeviceToHost);
+	nextNumRays = tmp;
+	cudaMemcpy(&tmp, rayValid + numRays - 1, sizeof(int), cudaMemcpyDeviceToHost);
+	nextNumRays += tmp;
+	thrust::scatter_if(segmentPtr, segmentPtr + numRays, rayIndexPtr, rayValidPtr, segmentBufferPtr);
+	thrust::scatter_if(intersectionInfoPtr, intersectionInfoPtr + numRays, rayIndexPtr, rayValidPtr, intersectionInfoBufferPtr);
+	std::swap(renderSegments, renderSegmentsBuffer);
+	std::swap(intersections, intersectionsBuffer);
+	return nextNumRays;
+}
+
+class Renderer{
+public:
+    __host__ Renderer(Scene *scene, UI *ui){
+        this -> scene = scene;
+        this -> ui = ui;
+        sppCounter = 0;
+
+        CudaInit();
+    }
+    __host__ ~Renderer(){
+
+    }
+
+    __host__ void RenderLoop(){
+        while (!glfwWindowShouldClose(ui -> window))
+        {
+            // LOG_DEBUG("here");
+            ui -> GuiBegin(sppCounter);
+        
+            if(sppCounter < scene -> spp){
+                sppCounter++;
+
+                // Rendering pipeline start
+                int numSegments = scene -> width * scene -> height;
+                // 1. Generate rays
+                generateRayGridSize = dim3((scene -> width + generateRayBlockSize.x - 1) / generateRayBlockSize.x, (scene -> height + generateRayBlockSize.y - 1) / generateRayBlockSize.y);
+                GenerateRayKernel<<<generateRayGridSize, generateRayBlockSize>>>(renderSegments, scene -> camera, scene -> sampler, scene -> width, scene -> height);
+                cudaDeviceSynchronize();
+                CHECK_CUDA_ERROR(cudaGetLastError());
+
+                renderGridSize = dim3((numSegments + renderBlockSize.x - 1) / renderBlockSize.x);
+
+                for(int i = 0; i < scene -> maxBounces; i ++){
+                    if(numSegments <= 0) break;
+                    cudaMemset(intersections, 0, sizeof(IntersectionInfo) * numSegments); // Clear intersection info for next bounce
+                    cudaMemset(intersectionsBuffer, 0, sizeof(IntersectionInfo) * numSegments); // Clear intersection info for next bounce
+                    // printf("Bounce %d, Active segments: %d\n", i, numSegments);
+
+                    // 2. Intersection
+                    renderGridSize = dim3((numSegments + renderBlockSize.x - 1) / renderBlockSize.x);
+                    IntersectionKernel<<<renderGridSize, renderBlockSize>>>(renderSegments, scene -> bvh, intersections, numSegments, segmentValidFlags, accumulator);
+                    cudaDeviceSynchronize();
+                    CHECK_CUDA_ERROR(cudaGetLastError());
+
+                    // stream compaction
+                    numSegments = StreamCompaction(segmentValidFlags, segmentPos, numSegments);
+                    // printf("After intersection stream compaction, Active segments: %d\n", numSegments);
+                    if(numSegments <= 0)break;
+
+                    // todo: sort intersections by materialID to improve memory coherence
+
+                    // 3. Shading
+                    renderGridSize = dim3((numSegments + renderBlockSize.x - 1) / renderBlockSize.x);
+                    ShadingKernel<<<renderGridSize, renderBlockSize>>>(renderSegments, scene -> bvh, intersections, scene -> meshes, scene -> materials, scene -> lights, scene -> numLights, scene -> sampler, scene -> rr, numSegments, accumulator, segmentValidFlags);
+                    cudaDeviceSynchronize();
+                    CHECK_CUDA_ERROR(cudaGetLastError());
+
+                    // stream compaction
+                    numSegments = StreamCompaction(segmentValidFlags, segmentPos, numSegments);
+                    // printf("After shading stream compaction, Active segments: %d\n", numSegments);
+                }
+
+                // 4. Gather
+                gatherGridSize = dim3((scene -> width + gatherBlockSize.x - 1) / gatherBlockSize.x, (scene -> height + gatherBlockSize.y - 1) / gatherBlockSize.y);
+                GatherKernel<<<gatherGridSize, gatherBlockSize>>>(pixels, accumulator, sppCounter, scene -> width, scene -> height);
+                cudaDeviceSynchronize();
+                CHECK_CUDA_ERROR(cudaGetLastError());
+                // Rendering pipeline end
+            }
+            
+            cudaDeviceSynchronize(); // Render the frame buffer
+            ui -> UpdateTexture();
+            ui -> RenderFrameBuffer();
+            ui -> GuiEnd();
+
+            // Swap buffers and poll events
+            glfwSwapBuffers(ui -> window);
+            glfwSwapInterval(0); // Disable VSync
+            glfwPollEvents();
+            // break;
+        }
+    }
+
+    void CudaInit()
+    {
+        // Initialize
+        cudaMalloc(&renderSegments, sizeof(RenderSegment) * scene -> width * scene -> height);
+        cudaMalloc(&renderSegmentsBuffer, sizeof(RenderSegment) * scene -> width * scene -> height);
+        cudaMalloc(&intersections, sizeof(IntersectionInfo) * scene -> width * scene -> height);
+        cudaMalloc(&intersectionsBuffer, sizeof(IntersectionInfo) * scene -> width * scene -> height);
+        cudaMalloc(&accumulator, sizeof(float) * 3 * scene -> width * scene -> height);
+        cudaMemset(accumulator, 0, sizeof(float) * 3 * scene -> width * scene -> height);
+        cudaMalloc(&segmentValidFlags, sizeof(int) * scene -> width * scene -> height);
+        cudaMalloc(&segmentPos, sizeof(int) * scene -> width * scene -> height);
+        cudaMemset(segmentValidFlags, 0, sizeof(int) * scene -> width * scene -> height);
+        cudaMemset(segmentPos, 0, sizeof(int) * scene -> width * scene -> height);
+        cudaMemset(renderSegmentsBuffer, 0, sizeof(RenderSegment) * scene -> width * scene -> height);
+
+        CHECK_CUDA_ERROR(cudaSetDevice(0)); // Set the device to use
+        CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&ui -> cudaPBOResource, ui -> PBO, cudaGraphicsMapFlagsWriteDiscard));
+        CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &ui -> cudaPBOResource, 0));
+        CHECK_CUDA_ERROR(cudaGraphicsResourceGetMappedPointer((void**)&pixels, &numBytes, ui -> cudaPBOResource));
+        if (numBytes != scene -> width * scene -> height * sizeof(uchar4))
+        {
+            std::cout << "Mapped PBO size does not match expected size: " << scene -> width * scene -> height * sizeof(uchar4) << " bytes";
+            return;
+        }
+    }
+
+    Scene *scene;
+    UI *ui;
+    uchar4* pixels;
+    size_t numBytes;
+    int sppCounter = 0;
+};

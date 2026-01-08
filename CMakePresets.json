@@ -1,0 +1,39 @@
+﻿{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "Windows-Debug",
+      "description": "default configuration in windows for the project",
+      "hidden": false,
+      "generator": "Visual Studio 17 2022",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS": "/w",
+        "CMAKE_C_FLAGS": "/w",
+        "CMAKE_CUDA_FLAGS": "-Xcompiler /w",
+        "CMAKE_CUDA_SEPARABLE_COMPILATION": "ON"
+      }
+    },
+    {
+      "name": "Windows-Release",
+      "description": "release configuration in windows for the project",
+      "hidden": false,
+      "generator": "Visual Studio 17 2022",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS": "/w",
+        "CMAKE_C_FLAGS": "/w",
+        "CMAKE_CUDA_FLAGS": "-Xcompiler /w"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "release",
+      "configurePreset": "Windows-Release",
+      "configuration": "Release"
+    }
+  ]
+}

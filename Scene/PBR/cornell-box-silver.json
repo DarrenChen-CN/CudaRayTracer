@@ -1,0 +1,291 @@
+{
+  "camera": {
+    "type": "pinhole",
+    "resolution": [
+      1024,
+      1024
+    ],
+    "pos": [
+      278.0,
+      273.0,
+      -800.0
+    ],
+    "lookat": [
+      278.0,
+      273.0,
+      -799.0
+    ],
+    "up": [
+      0,
+      1,
+      0
+    ],
+    "fov": 39.3077,
+    "max_bounces": 4,
+    "rr": 0.6,
+    "spp": 4096
+  },
+  "materials": [
+    {
+      "name": "DiffuseWhite",
+      "type": "diffuse",
+      "basecolor": [
+        0.79,
+        0.76,
+        0.73
+      ]
+    },
+    {
+      "name": "PBRSilver",
+      "type": "pbr",
+      "basecolor": [
+        0.95,
+        0.93,
+        0.88
+      ],
+      "metallic": 1,
+      "roughness": 0.1
+    },
+    {
+      "name": "DiffuseYellow",
+      "type": "diffuse",
+      "basecolor": [
+        0.6,
+        0.8,
+        0.3
+      ]
+    },
+    {
+      "name": "LeftWall",
+      "type": "diffuse",
+      "basecolor": [
+        0.63,
+        0.065,
+        0.05
+      ]
+    },
+    {
+      "name": "RightWall",
+      "type": "diffuse",
+      "basecolor": [
+        0.14,
+        0.45,
+        0.091
+      ]
+    },
+    {
+      "name": "Light",
+      "type": "light",
+      "emission": [
+        34.0,
+        34.0,
+        34.0
+      ]
+    }
+  ],
+  "objects": [
+    {
+      "name": "1",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_1.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "Light"
+    },
+    {
+      "name": "2",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_2.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "DiffuseWhite"
+    },
+    {
+      "name": "3",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_3.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "DiffuseWhite"
+    },
+    {
+      "name": "4",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_4.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "DiffuseWhite"
+    },
+    {
+      "name": "5",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_5.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "LeftWall"
+    },
+    {
+      "name": "6",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_6.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "RightWall"
+    },
+    {
+      "name": "7",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_7.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "PBRSilver"
+    },
+    {
+      "name": "8",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_8.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "PBRSilver"
+    },
+    {
+      "name": "9",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_9.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "PBRSilver"
+    }
+  ],
+  "lights": [
+    {
+      "name": "Light0",
+      "type": "area",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_1.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "Light"
+    }
+  ]
+}
