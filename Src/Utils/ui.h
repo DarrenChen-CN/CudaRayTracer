@@ -8,6 +8,7 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_glfw.h"
 #include "shader.h"
+#include "camera.h"
 
 class UI {
 public:
@@ -17,12 +18,13 @@ public:
     void Init();
     void UpdateTexture();
     void RenderFrameBuffer();
-    void GuiBegin(int spp);
+    void GuiBegin(int spp, bool &framebufferReset);
     void GuiEnd();
     GLFWwindow* window;
     Shader* shader;
     int width, height;
     GLuint VAO, VBO, PBO, screenTexture;
     cudaGraphicsResource* cudaPBOResource;
-    float *accumulateColors;
+    // For reset camera movement
+    CameraParam defaultCameraParam;
 };

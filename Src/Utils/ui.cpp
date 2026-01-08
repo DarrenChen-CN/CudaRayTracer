@@ -1,7 +1,8 @@
 #include <ui.h>
+#include <camera.h>
+#include "mathutil.h"
 UI::UI(int width, int height) : width(width), height(height)
 {
-    accumulateColors = new float[width * height * 3](); // Initialize to zero
     // Initialize GLFW
     if (!glfwInit())
     {
@@ -92,6 +93,9 @@ void UI::Init()
     // Setup Platform/Renderer bindings
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
+
+    defaultCameraParam = cameraParam; // Store the default camera parameters for reset
+
     std::cout << "ImGui initialized successfully." << std::endl;
 }
 void UI::UpdateTexture()
@@ -117,20 +121,70 @@ void UI::RenderFrameBuffer()
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
 }
-void UI::GuiBegin(int spp)
+void UI::GuiBegin(int spp, bool &framebufferReset)
 {
     // Start a new ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
+    ImGui::SetWindowPos(ImVec2(-100, 0));
+    ImGui::SetWindowSize(ImVec2(350, 320));
+    ImGui::Begin("CudaRayTracer GUI", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 
-    ImGui::Begin("CPURayTracer GUI", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-    ImGui::SetWindowPos(ImVec2(0, 0));
-    ImGui::SetWindowSize(ImVec2(350, 100));
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::Text("spp %d", spp);
+    ImGui::Separator();
+
+    // Camera
+    ImGui::Text("Camera Transform");
+    ImGui::DragFloat3("Target", &cameraParam.target(0), 0.05f, -1000.f, 1000.f, "%.2f");
+    if(ImGui::DragFloat("Distance", &cameraParam.distance, 0.05f, cameraParam.minDistance, 1000.f, "%.2f"))
+    {
+        cameraParam.distance = std::max(cameraParam.distance, cameraParam.minDistance);
+    }
+    ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Theta: %.1f | Phi: %.1f", cameraParam.theta, cameraParam.phi);
+    if (ImGui::Button("Reset Camera", ImVec2(-1, 0))) { // -1 表示宽度填满
+        cameraParam.target = defaultCameraParam.target;
+        cameraParam.distance = defaultCameraParam.distance;
+        cameraParam.theta = defaultCameraParam.theta;
+        cameraParam.phi = defaultCameraParam.phi;
+    }
+    ImGui::Separator();
+
+    // Input Sensitivity
+    ImGui::Text("Input Sensitivity");
+    ImGui::SliderFloat("Rotate Speed", &cameraParam.rotateSpeed, 0.1f, 1.0f, "%.2f deg/px");
+    ImGui::SliderFloat("Zoom Speed", &cameraParam.zoomSpeed, 0.01f, 0.3f, "%.2f x Dist");
     ImGui::End();
+
+    ImGuiIO& io = ImGui::GetIO();
+
+    if (!io.WantCaptureMouse) {
+        
+        if (ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
+            ImVec2 delta = io.MouseDelta;
+            
+            cameraParam.phi -= delta.x * cameraParam.rotateSpeed;
+            cameraParam.theta -= delta.y * cameraParam.rotateSpeed;
+
+            // cameraParam.theta = Clamp(0.f, 180.0f, cameraParam.theta);
+            framebufferReset = true;
+        }
+
+        if (io.MouseWheel != 0.0f) {
+            float zoomAmount = io.MouseWheel * cameraParam.distance * cameraParam.zoomSpeed;
+            cameraParam.distance -= zoomAmount;
+            
+            cameraParam.distance = std::max(cameraParam.distance, cameraParam.minDistance);
+            framebufferReset = true;
+        }
+    }
+
+    // Update camera parameters
+    Camera::ComputeCameraParam(cameraParam);
+    // framebufferReset = true;
 }
+
 
 void UI::GuiEnd()
 {

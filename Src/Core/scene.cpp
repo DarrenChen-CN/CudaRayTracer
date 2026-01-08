@@ -8,6 +8,7 @@
 __host__ __device__ Scene::Scene(const std::string &sceneFilePath){
     ParseSceneFile(sceneFilePath);
     BuildBVH();
+    InitCameraParam();
 }
 
 __host__ __device__ Scene::~Scene(){
@@ -37,6 +38,9 @@ __host__ __device__ void Scene::BuildBVH(){
         return;
     }
     BVH *hostBVH = new BVH(hostTriangles, numTriangles, 4);
+    if(hostBVH -> root){
+        sceneBounds = hostBVH -> root -> bounds;
+    }
     cudaMalloc(&bvh, sizeof(BVH));
     CreateBVH(hostBVH, bvh);
     delete hostBVH;
@@ -124,25 +128,10 @@ bool Scene::ParseCamera(const json& cameraJson) {
         h = res[1];
         width = w, height = h;
     }
-    
-    if (cameraJson.contains("pos")) {
-        auto pos = cameraJson["pos"];
-        position = Vec3f(pos[0], pos[1], pos[2]);
-    }
-    
-    if (cameraJson.contains("lookat")) {
-        auto lookat_ = cameraJson["lookat"];
-        lookat = Vec3f(lookat_[0], lookat_[1], lookat_[2]);
-    }
-
-    if (cameraJson.contains("up")) {
-        auto up_ = cameraJson["up"];
-        up = Vec3f(up_[0], up_[1], up_[2]);
-    }
 
     if(cameraJson.contains("fov")){
         auto fov = cameraJson["fov"];
-        fovy = fov;
+        this -> fovy = fov;
     }
 
     if(cameraJson.contains("max_bounces")){
@@ -159,7 +148,7 @@ bool Scene::ParseCamera(const json& cameraJson) {
     }
 
     cudaMalloc(&camera, sizeof(Camera));
-    Camera *hostCamera = new Camera(position, lookat, up, fovy, width, height, type, maxBounces_, rr_, spp_);
+    Camera *hostCamera = new Camera(type);
     CreateCamera(hostCamera, camera);
     delete hostCamera;
 
@@ -442,5 +431,21 @@ __host__ __device__ bool Scene::ParseLights(const json& lightsJson) {
     }
 
     return true;
+}
 
+__host__ void Scene::InitCameraParam(){
+    cameraParam.target = sceneBounds.Center();
+    cameraParam.fovy = this -> fovy;
+    cameraParam.width = this -> width;
+    cameraParam.height = this -> height;
+    cameraParam.maxBounces = this -> maxBounces;
+    cameraParam.rr = this -> rr;
+    cameraParam.spp = this -> spp;
+    cameraParam.distance = sceneBounds.DiagonalLength() * 0.5f / sin(AngleToRadian(cameraParam.fovy) / 2.f);
+    cameraParam.theta = 90.f;
+    cameraParam.phi = 180.f;
+    cameraParam.rotateSpeed = 0.3f;
+    cameraParam.zoomSpeed = 0.1f;
+    Camera::ComputeCameraParam(cameraParam);
+    std::cout << "Camera initialized. Position: (" << cameraParam.position(0) << ", " << cameraParam.position(1) << ", " << cameraParam.position(2) << ")" << std::endl;
 }

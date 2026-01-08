@@ -123,6 +123,11 @@ public:
         return (min + max) * 0.5f;
     }
 
+    __host__ __device__ float DiagonalLength()
+    {
+        return (max - min).norm();
+    }
+
 public:
     Vec3f min;
     Vec3f max;

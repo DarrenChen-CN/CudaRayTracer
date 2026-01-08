@@ -3,6 +3,7 @@
 #include "light.h"
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
+#include "camera.h"
 
 // Render kernel
 
@@ -22,16 +23,16 @@ dim3 renderGridSize;
 dim3 gatherGridSize;
 
 
-__global__ void GenerateRayKernel(RenderSegment* segments, Camera* camera, Sampler* sampler, int width, int height)
+__global__ void GenerateRayKernel(RenderSegment* segments, Camera* camera, Sampler* sampler, int width, int height, CameraParam cameraParam)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
     if (i >= width || j >= height)
         return; // Ensure we don't access out of bounds
     int idx = j * width + i;
-    camera -> GeneratingRay(i, j, sampler, &segments[idx].ray);
+    camera -> GeneratingRay(i, j, sampler, &segments[idx].ray, cameraParam);
     segments[idx].index = idx;
-    segments[idx].remainingBounces = camera -> maxBounces; // Set the maximum number of bounces
+    segments[idx].remainingBounces = cameraParam.maxBounces; // Set the maximum number of bounces
     segments[idx].color = Vec3f(0.0f, 0.0f, 0.0f);
     segments[idx].weight = Vec3f(1.0f, 1.0f, 1.0f);
     segments[idx].firstBounce = true; // Initialize first bounce flag
@@ -230,7 +231,12 @@ public:
         while (!glfwWindowShouldClose(ui -> window))
         {
             // LOG_DEBUG("here");
-            ui -> GuiBegin(sppCounter);
+            ui -> GuiBegin(sppCounter, framebufferReset);
+            if(framebufferReset){
+                sppCounter = 0;
+                cudaMemset(accumulator, 0, sizeof(float) * 3 * scene -> width * scene -> height);
+                framebufferReset = false;
+            }
         
             if(sppCounter < scene -> spp){
                 sppCounter++;
@@ -239,7 +245,7 @@ public:
                 int numSegments = scene -> width * scene -> height;
                 // 1. Generate rays
                 generateRayGridSize = dim3((scene -> width + generateRayBlockSize.x - 1) / generateRayBlockSize.x, (scene -> height + generateRayBlockSize.y - 1) / generateRayBlockSize.y);
-                GenerateRayKernel<<<generateRayGridSize, generateRayBlockSize>>>(renderSegments, scene -> camera, scene -> sampler, scene -> width, scene -> height);
+                GenerateRayKernel<<<generateRayGridSize, generateRayBlockSize>>>(renderSegments, scene -> camera, scene -> sampler, scene -> width, scene -> height, cameraParam);
                 cudaDeviceSynchronize();
                 CHECK_CUDA_ERROR(cudaGetLastError());
 
@@ -327,4 +333,5 @@ public:
     uchar4* pixels;
     size_t numBytes;
     int sppCounter = 0;
+    bool framebufferReset = false;
 };

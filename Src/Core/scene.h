@@ -29,6 +29,7 @@ public:
     __host__ __device__ bool ParseMaterials(const json& materialsJson);
     __host__ __device__ bool ParseObjects(const json& objectsJson);
     __host__ __device__ bool ParseLights(const json& lightsJson);
+    __host__ void InitCameraParam();
 
     Material *hostMaterials;
     Material *materials;
@@ -44,8 +45,10 @@ public:
     int numMeshes;
     Camera *camera;
     Sampler *sampler;
+    Bounds3D sceneBounds;
 
     int width, height;
+    float fovy;
     float rr;
     int spp;
     int maxBounces;
