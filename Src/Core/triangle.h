@@ -23,6 +23,7 @@ struct RenderSegment
     int index;
     int remainingBounces;
     bool firstBounce = true;
+    float pdfBrdf = 0.f; // For MIS
 };
 
 struct TriangleSampleInfo {

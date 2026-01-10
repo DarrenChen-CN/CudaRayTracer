@@ -17,7 +17,7 @@ __device__ Vec3f Material::Evaluate(Vec3f& wi, Vec3f& normal, Vec3f& wo) const{
         case PBR:
             return EvaluatePBR(wi, normal, wo);
         default:
-            return Vec3f(0.f, 0.f, 0.f);
+            return EvaluateDiffuse(wi, normal, wo);
     }
 }
 
@@ -32,6 +32,7 @@ __device__ void Material::Pdf(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf) c
             PdfPBR(wi, normal, wo, pdf);
             break;
         default:
+            PdfDiffuse(wi, normal, wo, pdf);
             break;
     }
 }
@@ -46,6 +47,7 @@ __device__ void Material::Sample(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf
             SamplePBR(wi, normal, wo, pdf, sampler, idx);
             break;
         default:
+            SampleDiffuse(wi, normal, wo, pdf, sampler, idx);
             break;
     }
 }

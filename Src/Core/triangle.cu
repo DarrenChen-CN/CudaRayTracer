@@ -15,15 +15,8 @@ __host__ __device__ Triangle::Triangle() {}
 
 __device__ bool Triangle::IsIntersect(const Ray& ray, IntersectionInfo& info) const
 {
-    // printf("Triangle info: v0=(%f,%f,%f), v1=(%f,%f,%f), v2=(%f,%f,%f), normal=(%f,%f,%f), area=%f, meshID=%d\n",
-    //        v0.position(0), v0.position(1), v0.position(2),
-    //        v1.position(0), v1.position(1), v1.position(2),
-    //        v2.position(0), v2.position(1), v2.position(2),
-    //        normal(0), normal(1), normal(2),
-    //        area, meshID);
-
-    // Reference to PBRT V3
-    // Translating ray origin to (0, 0, 0)
+    // // Reference to PBRT V3
+    // // Translating ray origin to (0, 0, 0)
     // Vec3f p0 = v0.position - ray.origin;
     // Vec3f p1 = v1.position - ray.origin;
     // Vec3f p2 = v2.position - ray.origin;
@@ -127,6 +120,9 @@ __device__ bool Triangle::IsIntersect(const Ray& ray, IntersectionInfo& info) co
     if (b2 < 0 || b1 + b2 > 1)return false;
 
     float b0 = 1 - b1 - b2;
+
+    if(t < 1e-2)
+        return false;
 
     info.hitTime = t;
     info.hitPoint = b0 * v0.position + b1 * v1.position + b2 * v2.position;

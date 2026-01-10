@@ -78,8 +78,14 @@ __device__ Light* SelectLight(Light* lights, int numLights, Sampler* sampler, in
         return nullptr;
     }
     int lightIndex = static_cast<int>(sampler -> Get1D(idx) * numLights) % numLights;
+    // printf("Selected light index: %d\n", lightIndex);
     pdf = 1.0f / numLights;
     return &lights[lightIndex];
+}
+
+__device__ float MISWeight(float a, float b, int c){
+    float t1 = powf(a, c), t2 = powf(b, c);
+    return t1 / (t1 + t2);
 }
 
 __device__ void PathTracing(RenderSegment &segment, BVH *bvh, IntersectionInfo &info, MeshData *meshData, Material *materials, Light* lights, int numLights, Sampler *sampler, float *accumulator, int *segmentValidFlags, float rr, int idx){
@@ -99,9 +105,24 @@ __device__ void PathTracing(RenderSegment &segment, BVH *bvh, IntersectionInfo &
             segmentValidFlags[idx] = 0;
             return ;
         }else{
-            segmentValidFlags[idx] = 0;
-            segment.remainingBounces = 0; // Terminate the path if hitting light after first bounce
-            return ;
+            // segmentValidFlags[idx] = 0;
+            // segment.remainingBounces = 0; // Terminate the path if hitting light after first bounce
+            // return ;
+            // MIS
+            float pdfSelectLight;
+            Light *light = SelectLight(lights, numLights, sampler, idx, pdfSelectLight);
+            float pdfLight;
+            
+            float r2 = (hitPoint - segment.ray.origin).squaredNorm();
+            // float cosTheta2 = fabs(hitNormal.dot(wo));
+            float cosTheta2 = fmaxf(hitNormal.dot(wo), 1e-6f);
+            pdfLight = pdfSelectLight * 1.f / light -> area;
+            pdfLight = (r2 * pdfLight) / cosTheta2;
+            // MIS weight
+            float brdfMisWeight = MISWeight(segment.pdfBrdf, pdfLight, 2);
+            segment.color += segment.weight.cwiseProduct(material.ke) * brdfMisWeight;
+            Vec3f temp = segment.weight.cwiseProduct(material.ke) * brdfMisWeight;
+            // printf("temp light: %f, %f, %f\n", temp(0), temp(1), temp(2));
         }
     }
 
@@ -122,14 +143,22 @@ __device__ void PathTracing(RenderSegment &segment, BVH *bvh, IntersectionInfo &
         Vec3f dirWi = (sampleLightPointInfo.position - hitPoint).normalized();
         float r2 = (hitPoint - sampleLightPointInfo.position).squaredNorm();
         float cosTheta = hitNormal.dot(dirWi);
-        float cosTheta2 = sampleLightPointInfo.normal.dot(-dirWi);
+        // float cosTheta2 = fabs(sampleLightPointInfo.normal.dot(-dirWi));
+        float cosTheta2 = fmaxf(sampleLightPointInfo.normal.dot(-dirWi), 1e-6f);
         float pdfLight = sampleLightPDF * sampleLightPointPDF;
         pdfLight = (r2 * pdfLight) / cosTheta2;
         
         Vec3f dirBrdf = material.Evaluate(wo, hitNormal, dirWi);
-        Vec3f dir_l = light -> emission.cwiseProduct(dirBrdf) * cosTheta / pdfLight;
-        // printf("visible light contribution: %f, %f, %f\n", dir_l(0), dir_l(1), dir_l(2));
-        segment.color += segment.weight.cwiseProduct(dir_l);
+        Vec3f dirL = light -> emission.cwiseProduct(dirBrdf) * cosTheta / pdfLight;
+
+        // MIS weight
+        float pdfBrdf;
+        material.Pdf(wo, hitNormal, dirWi, pdfBrdf);
+        float lightMisWeight = MISWeight(pdfLight, pdfBrdf, 2);
+        // printf("pdfLight: %f, pdfBrdf: %f, weight: %f\n", pdfLight, pdfBrdf, lightMisWeight);
+        segment.color += lightMisWeight * segment.weight.cwiseProduct(dirL);
+        Vec3f temp = lightMisWeight * segment.weight.cwiseProduct(dirL);
+        // printf("temp: %f, %f, %f\n", temp(0), temp(1), temp(2));
     }
     // return;
 
@@ -138,6 +167,7 @@ __device__ void PathTracing(RenderSegment &segment, BVH *bvh, IntersectionInfo &
     float indirWiPdf;
     material.Sample(wo, hitNormal, indirWi, indirWiPdf, sampler, idx);
     brdf = material.Evaluate(wo, hitNormal, indirWi);
+    segment.pdfBrdf = indirWiPdf;
     float indirCosTheta = hitNormal.dot(indirWi);
     if(!(indirWiPdf < eps || indirCosTheta < 0)){
         segment.weight = segment.weight.cwiseProduct(brdf) * indirCosTheta / indirWiPdf;
@@ -156,7 +186,7 @@ __device__ void PathTracing(RenderSegment &segment, BVH *bvh, IntersectionInfo &
     }
 
     segment.weight /= rr;
-    segment.ray.origin = hitPoint + hitNormal * eps; 
+    segment.ray.origin = hitPoint; // Offset to avoid self-intersection
     segment.ray.direction = indirWi;
 
     segment.firstBounce = false; // After the first bounce

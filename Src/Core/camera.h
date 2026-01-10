@@ -17,6 +17,7 @@ struct CameraParam{
     float rotateSpeed;
     float zoomSpeed;
     float minDistance = 0.1f;
+    float moveSpeed;
 
     int width, height;
     Vec3f position;
@@ -33,6 +34,10 @@ struct CameraParam{
     int maxBounces = 5; // Max depth of path tracing
     float rr = 0.8; // Russian roulette probability
     int spp = 16; // Samples per pixel
+    int sppCounter = 0;
+
+    // default direction
+    Vec3f defaultDirection = Vec3f(0, 0, -1);
 
 };
 

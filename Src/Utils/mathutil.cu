@@ -6,6 +6,11 @@ float AngleToRadian(float angle)
     return angle / 180 * PI;
 }
 
+float RadianToAngle(float radian)
+{
+    return radian * 180 / PI;
+}
+
 int MaxDimension(const Vec3f &v)
 {
     if (v(0) >= v(1) && v(0) >= v(2))

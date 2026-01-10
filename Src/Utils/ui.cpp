@@ -127,7 +127,7 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    ImGui::SetWindowPos(ImVec2(-100, 0));
+    ImGui::SetWindowPos(ImVec2(0, 0));
     ImGui::SetWindowSize(ImVec2(350, 320));
     ImGui::Begin("CudaRayTracer GUI", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 
@@ -137,10 +137,15 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
 
     // Camera
     ImGui::Text("Camera Transform");
-    ImGui::DragFloat3("Target", &cameraParam.target(0), 0.05f, -1000.f, 1000.f, "%.2f");
+    if(ImGui::DragFloat3("Target", &cameraParam.target(0), 0.05f, -1000.f, 1000.f, "%.2f"))
+    {
+        framebufferReset = true;
+    }
     if(ImGui::DragFloat("Distance", &cameraParam.distance, 0.05f, cameraParam.minDistance, 1000.f, "%.2f"))
     {
         cameraParam.distance = std::max(cameraParam.distance, cameraParam.minDistance);
+        framebufferReset = true;
+
     }
     ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Theta: %.1f | Phi: %.1f", cameraParam.theta, cameraParam.phi);
     if (ImGui::Button("Reset Camera", ImVec2(-1, 0))) { // -1 表示宽度填满
@@ -148,6 +153,7 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
         cameraParam.distance = defaultCameraParam.distance;
         cameraParam.theta = defaultCameraParam.theta;
         cameraParam.phi = defaultCameraParam.phi;
+        framebufferReset = true;
     }
     ImGui::Separator();
 
@@ -171,6 +177,17 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
             framebufferReset = true;
         }
 
+        if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle)) {
+            ImVec2 delta = io.MouseDelta;
+            
+            cameraParam.target -= delta.x * cameraParam.du;
+            cameraParam.target += delta.y * cameraParam.dv;
+
+            // cameraParam.theta = Clamp(0.f, 180.0f, cameraParam.theta);
+            framebufferReset = true;
+        }
+
+
         if (io.MouseWheel != 0.0f) {
             float zoomAmount = io.MouseWheel * cameraParam.distance * cameraParam.zoomSpeed;
             cameraParam.distance -= zoomAmount;
@@ -178,6 +195,7 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
             cameraParam.distance = std::max(cameraParam.distance, cameraParam.minDistance);
             framebufferReset = true;
         }
+
     }
 
     // Update camera parameters

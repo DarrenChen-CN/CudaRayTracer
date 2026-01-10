@@ -8,7 +8,12 @@
     "fov": 39.3077,
     "max_bounces": 4,
     "rr": 0.6,
-    "spp": 4096
+    "spp": 4096,
+    "direction": [
+      0,
+      0,
+      -1
+    ]
   },
   "materials": [
     {

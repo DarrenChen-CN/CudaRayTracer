@@ -3,6 +3,7 @@
 #include <memory>
 
 __host__ __device__ float AngleToRadian(float angle);
+__host__ __device__ float RadianToAngle(float radian);
 __host__ __device__ int MaxDimension(const Vec3f &v);
 __host__ __device__ Vec3f Permute(const Vec3f &v, int dim0, int dim1, int dim2);
 __host__ __device__ Vec3f Abs(const Vec3f &v);

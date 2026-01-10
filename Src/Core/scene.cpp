@@ -146,6 +146,10 @@ bool Scene::ParseCamera(const json& cameraJson) {
         spp_ = cameraJson["spp"];
         this -> spp = spp_;
     }
+    if(cameraJson.contains("direction")){
+        auto pos = cameraJson["direction"];
+        cameraParam.defaultDirection = Vec3f(pos[0], pos[1], pos[2]);
+    }
 
     cudaMalloc(&camera, sizeof(Camera));
     Camera *hostCamera = new Camera(type);
@@ -442,10 +446,16 @@ __host__ void Scene::InitCameraParam(){
     cameraParam.rr = this -> rr;
     cameraParam.spp = this -> spp;
     cameraParam.distance = sceneBounds.DiagonalLength() * 0.5f / sin(AngleToRadian(cameraParam.fovy) / 2.f);
-    cameraParam.theta = 90.f;
-    cameraParam.phi = 180.f;
+    // cameraParam.theta = 90.f;
+    // cameraParam.phi = 180.f;
+    Vec3f dir = cameraParam.defaultDirection.normalized();
+    cameraParam.theta = acosf(dir(1) / dir.norm());
+    cameraParam.phi = atan2f(dir(0), dir(2));
+    cameraParam.theta = RadianToAngle(cameraParam.theta);
+    cameraParam.phi = RadianToAngle(cameraParam.phi);
     cameraParam.rotateSpeed = 0.3f;
     cameraParam.zoomSpeed = 0.1f;
+    cameraParam.moveSpeed = 0.1f;
     Camera::ComputeCameraParam(cameraParam);
     std::cout << "Camera initialized. Position: (" << cameraParam.position(0) << ", " << cameraParam.position(1) << ", " << cameraParam.position(2) << ")" << std::endl;
 }

@@ -1,0 +1,397 @@
+{
+  "camera": {
+    "type": "pinhole",
+    "resolution": [
+      1280,
+      720
+    ],
+    "fov": 20.1143,
+    "max_bounces": 8,
+    "rr": 0.6,
+    "spp": 4096,
+    "direction": [
+      28.2792,
+      2.8,
+      0
+    ]
+  },
+  "materials": [
+    {
+      "name": "material0",
+      "type": "diffuse",
+      "basecolor": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    },
+    {
+      "name": "material1",
+      "type": "pbr",
+      "basecolor": [
+        1,
+        1,
+        1
+      ],
+      "metallic": 1,
+      "roughness": 0.001
+    },
+    {
+      "name": "material2",
+      "type": "pbr",
+      "basecolor": [
+        1,
+        1,
+        1
+      ],
+      "metallic": 1,
+      "roughness": 0.1
+    },
+    {
+      "name": "material3",
+      "type": "pbr",
+      "basecolor": [
+        1,
+        1,
+        1
+      ],
+      "metallic": 1,
+      "roughness": 0.3
+    },
+    {
+      "name": "material4",
+      "type": "pbr",
+      "basecolor": [
+        1,
+        1,
+        1
+      ],
+      "metallic": 1,
+      "roughness": 0.5
+    },
+    {
+      "name": "light1",
+      "type": "light",
+      "emission": [
+        100.0,
+        100.0,
+        100.0
+      ]
+    },
+    {
+      "name": "light2",
+      "type": "light",
+      "emission": [
+        100.0,
+        100.0,
+        100.0
+      ]
+    },
+    {
+      "name": "light3",
+      "type": "light",
+      "emission": [
+        100.0,
+        100.0,
+        100.0
+      ]
+    },
+    {
+      "name": "light4",
+      "type": "light",
+      "emission": [
+        100.0,
+        100.0,
+        100.0
+      ]
+    }
+  ],
+  "objects": [
+    {
+      "name": "1",
+      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_1.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "material1"
+    },
+    {
+      "name": "2",
+      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_2.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "material2"
+    },
+    {
+      "name": "3",
+      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_3.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "material3"
+    },
+    {
+      "name": "4",
+      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_4.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "material4"
+    },
+    {
+      "name": "5",
+      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_5.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "light1"
+    },
+    {
+      "name": "6",
+      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_6.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "light2"
+    },
+    {
+      "name": "7",
+      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_7.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "light3"
+    },
+    {
+      "name": "8",
+      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_8.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "light4"
+    },
+    {
+      "name": "9",
+      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_9.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "material0"
+    },
+    {
+      "name": "10",
+      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_10.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "material0"
+    }
+  ],
+  "lights": [
+    {
+      "name": "Light0",
+      "type": "area",
+      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_5.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "light1"
+    },
+    {
+      "name": "Light1",
+      "type": "area",
+      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_6.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "light2"
+    },
+    {
+      "name": "Light2",
+      "type": "area",
+      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_7.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "light3"
+    },
+    {
+      "name": "Light3",
+      "type": "area",
+      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_8.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "light4"
+    }
+  ]
+}

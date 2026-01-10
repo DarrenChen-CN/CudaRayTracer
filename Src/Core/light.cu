@@ -8,11 +8,11 @@
     Vec3f lightPoint = lightInfo.position;
     Vec3f lightNormal = lightInfo.normal;
     hitPoint = hitPoint + 1e-4 * hitNormal;
-    lightPoint = lightPoint + 1e-2* lightNormal;
+    lightPoint = lightPoint + 1e-4* lightNormal;
 
     float sampleDistance = (hitPoint - lightPoint).norm();
     Vec3f rayDirection = (hitPoint - lightPoint).normalized();
-    Ray ray(lightPoint, rayDirection);
+    Ray ray(lightPoint + 1e-2 * rayDirection, rayDirection);
 
     IntersectionInfo testInfo;
     bool hit = sceneBVH -> IsIntersect(ray, testInfo);
@@ -24,6 +24,18 @@
     if((hitPoint - testHitPoint).norm() > 1e-1 && abs(testDistance - sampleDistance) > 1e-1)return false;
 
     return true;
+
+    // Vec3f hitPoint = info.hitPoint + 1e-1 * info.normal;
+    // Vec3f lightPoint = lightInfo.position + 1e-1 * lightInfo.normal;
+    // Vec3f dir = (lightPoint - hitPoint).normalized();
+    // Ray ray(hitPoint, dir);
+    // IntersectionInfo testInfo;
+    // bool hit = sceneBVH -> IsIntersect(ray, testInfo);
+    // if(!hit) return true;
+    // float EPS = 5e-1;
+    // if((testInfo.hitPoint - lightPoint).norm() < EPS) return true;
+    // // printf("ray origin: %f, %f, %f; hit point: %f, %f, %f\n", ray.origin(0), ray.origin(1), ray.origin(2), testInfo.hitPoint(0), testInfo.hitPoint(1), testInfo.hitPoint(2));
+    // return false;
  }
 
  __device__ void Light::SamplePoint(TriangleSampleInfo &info, float &pdf, Sampler *sampler, int idx) const{
