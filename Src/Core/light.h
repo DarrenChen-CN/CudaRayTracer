@@ -7,7 +7,8 @@ class BVH;
 
 enum LightType{
     AREA_LIGHT,
-    POINT_LIGHT
+    POINT_LIGHT,
+    ENV_LIGHT
 };
 
 class Light{
@@ -19,7 +20,7 @@ public:
 
     __device__ void SamplePoint(TriangleSampleInfo &info, float &pdf, Sampler *sampler, int idx) const;
     __device__ void SamplePointPDF(Vec3f &samplePoint, float &pdf) const;
-    __device__ void SampleDirectionPDF(IntersectionInfo &info, Vec3f &wi, float &pdf) const;
+    __device__ void SampleDirectionPDF(Ray &ray, Vec3f &lightPoint, Vec3f &lightNormal, float &pdf) const;
 
     Vec3f emission;
     Mat4f transform;

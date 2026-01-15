@@ -1,3 +1,4 @@
+#define STB_IMAGE_IMPLEMENTATION
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <cuda_runtime.h>
@@ -26,7 +27,7 @@ int main(int argc, char** argv)
 
     Scene *scene = new Scene(sceneFilePath);
     UI *ui = new UI(scene -> width, scene -> height);
-    Renderer *renderer = new Renderer(scene, ui);
+    Renderer *renderer = new Renderer(ui);
     renderer -> RenderLoop();
     return 0;
 }

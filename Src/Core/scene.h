@@ -9,11 +9,31 @@
 #include <thrust/host_vector.h>
 #include <unordered_map>
 #include <json.hpp>
+#include "texture.h"
+#include "lightmanager.h"
 
 using json = nlohmann::json;
 // #include "light.cuh"
 
 class Light;
+
+struct RenderParam{
+    int width, height;
+    MeshData *meshData;
+    Material *materials;
+    LightManager *lightManager;
+    BVH *bvh;
+    Camera *camera;
+    Sampler *sampler;
+    cudaTextureObject_t envMap;
+    bool usingEnvMap;
+    Bounds3D sceneBounds;
+    float rr;
+    int spp;
+    int maxBounces;
+};
+
+inline struct RenderParam renderParam;
 
 class Scene
 {
@@ -29,7 +49,9 @@ public:
     __host__ __device__ bool ParseMaterials(const json& materialsJson);
     __host__ __device__ bool ParseObjects(const json& objectsJson);
     __host__ __device__ bool ParseLights(const json& lightsJson);
+    __host__ __device__ bool ParseTextures(const json& texturesJson);
     __host__ void InitCameraParam();
+    __host__ void SetRenderParam();
 
     Material *hostMaterials;
     Material *materials;
@@ -38,14 +60,17 @@ public:
     Triangle *triangles;
     Triangle *hostTriangles;
     int numTriangles;
-    Light *lights;
-    int numLights;
+    LightManager *hostLightManager;
+    LightManager *lightManager;
     BVH *bvh;
+    MeshData *hostMeshes;
     MeshData *meshes;
     int numMeshes;
     Camera *camera;
     Sampler *sampler;
     Bounds3D sceneBounds;
+    HDRTexture *EnvironmentMap = nullptr;
+    bool usingEnvMap = false;
 
     int width, height;
     float fovy;

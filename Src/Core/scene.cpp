@@ -9,6 +9,7 @@ __host__ __device__ Scene::Scene(const std::string &sceneFilePath){
     ParseSceneFile(sceneFilePath);
     BuildBVH();
     InitCameraParam();
+    SetRenderParam();
 }
 
 __host__ __device__ Scene::~Scene(){
@@ -19,8 +20,8 @@ __host__ __device__ Scene::~Scene(){
     if (triangles) {
         cudaFree(triangles);
     }
-    if (lights) {
-        cudaFree(lights);
+    if (lightManager) {
+        cudaFree(lightManager);
     }
     if (bvh) {
         cudaFree(bvh);
@@ -61,6 +62,11 @@ __host__ __device__ bool Scene::ParseSceneFile(const std::string& filename) {
         if (!ParseCamera(sceneJson["camera"])) {
             return false;
         }
+
+        // 解析纹理
+        if (!ParseTextures(sceneJson["textures"])) {
+            return false;
+        }
         
         // 解析材质
         if (!ParseMaterials(sceneJson["materials"])) {
@@ -87,7 +93,7 @@ __host__ __device__ bool Scene::ParseSceneFile(const std::string& filename) {
         std::cout << "Materials: " << numMaterials << std::endl;
         std::cout << "Objects: " << numMeshes << std::endl;
         std::cout << "Triangles: " << numTriangles << std::endl;
-        std::cout << "Lights: " << numLights << std::endl;
+        std::cout << "Lights: " << hostLightManager -> numLights << std::endl;
 
         return true;
     } catch (const json::exception& e) {
@@ -257,6 +263,7 @@ bool Scene::ParseMaterials(const json& materialsJson) {
     int objectSize = objectJson.size();
     numMeshes = objectSize;
     cudaMalloc(&meshes, objectSize * sizeof(MeshData));
+    hostMeshes = new MeshData[objectSize];
 
     std::vector<Triangle> tris;
 
@@ -321,9 +328,10 @@ bool Scene::ParseMaterials(const json& materialsJson) {
         std::vector<Triangle> objectTris = LoadObject(path, i, transform, transformInv);
         mesh.startTriangleID = tris.size();
         mesh.numTriangles = objectTris.size();
+        for(auto& tri : objectTris)mesh.area += tri.area;
         mesh.transform = transform;
         mesh.transformInv = transformInv;
-
+        hostMeshes[i] = mesh;
         tris.insert(tris.end(), objectTris.begin(), objectTris.end());
         CreateMeshData(&mesh, &meshes[i]);
     }
@@ -353,8 +361,7 @@ __host__ __device__ bool Scene::ParseLights(const json& lightsJson) {
     }
 
     int lightSize = lightsJson.size();
-    cudaMalloc(&lights, lightSize * sizeof(Light));
-    numLights = lightSize;
+    hostLightManager = new LightManager(lightSize);
 
     for(int i = 0; i < lightSize; i++){
         Light light;
@@ -423,13 +430,50 @@ __host__ __device__ bool Scene::ParseLights(const json& lightsJson) {
             light.mesh = new Triangle[light.numTriangles];
             light.area = 0.f;
             for(auto& tri : objectTris)light.area += tri.area;
+            printf("Area Light %d: numTriangles=%d, total area=%f\n", i, light.numTriangles, light.area);
             memcpy(light.mesh, objectTris.data(), light.numTriangles * sizeof(Triangle));
             light.transform = transform;
             light.transformInv = transformInv;
 
-            CreateLight(&light, &lights[i]);
+            CreateLight(&light, &(hostLightManager -> lights[i]));
         }else{
             std::cerr << "Error: Unsupported light type " << lightJson["type"] << std::endl;
+            continue;
+        }
+    }
+
+    cudaMalloc(&lightManager, sizeof(LightManager));
+    CreateLightManager(hostLightManager, lightManager);
+
+    return true;
+}
+
+__host__ __device__ bool Scene::ParseTextures(const json& texturesJson) {
+    if (!texturesJson.is_array()) {
+        std::cerr << "Error: 'textures' should be an array" << std::endl;
+        return false;
+    }
+
+    int textuerSize = texturesJson.size();
+    for(int i = 0; i < textuerSize; i++){
+        auto& textureJson = texturesJson[i];
+
+        if (!textureJson.contains("type")) {
+            std::cerr << "Error: Texture missing 'type' field" << std::endl;
+            continue;
+        }
+
+        if(textureJson["type"] == "envmap"){
+            if(textureJson.contains("path")){
+                std::string path = textureJson["path"];
+                EnvironmentMap = new HDRTexture(path);
+                usingEnvMap = true;
+            }else{
+                std::cerr << "Error: Envmap texture missing 'path' field" << std::endl;
+                continue;
+            }
+        }else{
+            std::cerr << "Error: Unsupported light type " << textureJson["type"] << std::endl;
             continue;
         }
     }
@@ -458,4 +502,26 @@ __host__ void Scene::InitCameraParam(){
     cameraParam.moveSpeed = 0.1f;
     Camera::ComputeCameraParam(cameraParam);
     std::cout << "Camera initialized. Position: (" << cameraParam.position(0) << ", " << cameraParam.position(1) << ", " << cameraParam.position(2) << ")" << std::endl;
+}
+
+__host__ void Scene::SetRenderParam(){
+    renderParam.width = width;
+    renderParam.height = height;
+    renderParam.meshData = meshes;
+    renderParam.materials = materials;
+    renderParam.lightManager = lightManager;
+    renderParam.bvh = bvh;
+    renderParam.camera = camera;
+    renderParam.sampler = sampler;
+    if(EnvironmentMap){
+        renderParam.envMap = EnvironmentMap -> cudaTextureObj;
+        renderParam.usingEnvMap = true;
+    }else{
+        renderParam.envMap = 0;
+        renderParam.usingEnvMap = false;
+    }
+    renderParam.sceneBounds = sceneBounds;
+    renderParam.rr = rr;
+    renderParam.maxBounces = maxBounces;
+    renderParam.spp = spp;
 }

@@ -63,6 +63,7 @@ struct MeshData{
     int materialID;
     int startTriangleID; // in the global triangle list
     int numTriangles;
+    float area = 0.f;
     Mat4f transform; // Transformation matrix for the mesh
     Mat4f transformInv;
 };

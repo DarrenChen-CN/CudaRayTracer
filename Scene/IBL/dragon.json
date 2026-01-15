@@ -1,0 +1,60 @@
+{
+    "camera": {
+        "type": "pinhole",
+        "resolution": [
+            720,
+            720
+        ],
+        "fov": 39.3077,
+        "max_bounces": 4,
+        "rr": 0.6,
+        "spp": 4096,
+        "direction": [
+            0,
+            0,
+            -1
+        ]
+    },
+    "textures": [
+        {
+            "type": "envmap",
+            "path": "E://code/projects/CudaRayTracer/Image/HDR/industrial_wooden_attic_4k.hdr"
+        }
+    ],
+    "materials": [
+        {
+            "name": "PBRGold",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                0.78,
+                0.34
+            ],
+            "metallic": 1,
+            "roughness": 0.5
+        }
+    ],
+    "objects": [
+        {
+            "name": "dragon",
+            "path": "E://code/projects/CudaRayTracer/Model/Dragon/dragon.obj",
+            "translate": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0
+                }
+            ],
+            "material": "PBRGold"
+        }
+    ],
+    "lights": []
+}

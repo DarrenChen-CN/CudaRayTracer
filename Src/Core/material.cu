@@ -133,7 +133,12 @@ __device__ Vec3f Material::EvaluatePBR(Vec3f& wi, Vec3f& normal, Vec3f& wo) cons
     Vec3f ks = F;
     Vec3f kd = (Vec3f(1.0f, 1.0f, 1.0f) - ks) * (1.0f - metallic);
     // printf("kd: %f, %f, %f\n", kd.x(), kd.y(), kd.z());
-    Vec3f diffuse = kd.cwiseProduct(basecolor) / PI;
+    Vec3f diffuse;
+    if(wi.dot(normal) > 0.f && wo.dot(normal) > 0.f){
+        diffuse = kd.cwiseProduct(basecolor) / PI;
+    }else{
+        diffuse = Vec3f(0.f, 0.f, 0.f);
+    }
 
     return diffuse + specular;
 }

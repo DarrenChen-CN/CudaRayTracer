@@ -127,9 +127,10 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    ImGui::SetWindowPos(ImVec2(0, 0));
-    ImGui::SetWindowSize(ImVec2(350, 320));
+    
     ImGui::Begin("CudaRayTracer GUI", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+    ImGui::SetWindowPos(ImVec2(0, 0));
+    ImGui::SetWindowSize(ImVec2(350, 270));
 
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::Text("spp %d", spp);
@@ -161,6 +162,7 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
     ImGui::Text("Input Sensitivity");
     ImGui::SliderFloat("Rotate Speed", &cameraParam.rotateSpeed, 0.1f, 1.0f, "%.2f deg/px");
     ImGui::SliderFloat("Zoom Speed", &cameraParam.zoomSpeed, 0.01f, 0.3f, "%.2f x Dist");
+    ImGui::SliderFloat("move Speed", &cameraParam.moveSpeed, 0.01f, 0.3f, "%.2f x Dist");
     ImGui::End();
 
     ImGuiIO& io = ImGui::GetIO();

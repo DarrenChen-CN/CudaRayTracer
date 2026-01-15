@@ -24,23 +24,14 @@
     if((hitPoint - testHitPoint).norm() > 1e-1 && abs(testDistance - sampleDistance) > 1e-1)return false;
 
     return true;
-
-    // Vec3f hitPoint = info.hitPoint + 1e-1 * info.normal;
-    // Vec3f lightPoint = lightInfo.position + 1e-1 * lightInfo.normal;
-    // Vec3f dir = (lightPoint - hitPoint).normalized();
-    // Ray ray(hitPoint, dir);
-    // IntersectionInfo testInfo;
-    // bool hit = sceneBVH -> IsIntersect(ray, testInfo);
-    // if(!hit) return true;
-    // float EPS = 5e-1;
-    // if((testInfo.hitPoint - lightPoint).norm() < EPS) return true;
-    // // printf("ray origin: %f, %f, %f; hit point: %f, %f, %f\n", ray.origin(0), ray.origin(1), ray.origin(2), testInfo.hitPoint(0), testInfo.hitPoint(1), testInfo.hitPoint(2));
-    // return false;
  }
 
  __device__ void Light::SamplePoint(TriangleSampleInfo &info, float &pdf, Sampler *sampler, int idx) const{
     if(type == AREA_LIGHT && mesh != nullptr){
-        mesh -> Sample(info, sampler, idx);
+        int triangleId = static_cast<int>(sampler->Get1D(idx) * numTriangles);
+        if(triangleId == numTriangles) triangleId = numTriangles - 1; //
+        mesh[triangleId].Sample(info, sampler, idx);
+        // mesh -> Sample(info, sampler, idx);
         SamplePointPDF(info.position, pdf);
     }else {
         printf("Area Light doesn't contain mesh\n");
@@ -50,6 +41,20 @@
  __device__ void Light::SamplePointPDF(Vec3f &samplePoint, float &pdf) const{
     if(type == AREA_LIGHT && mesh != nullptr){
         pdf = 1.f / area;
+    }else{
+        printf("Area Light doesn't contain mesh\n");
+    }
+ }
+
+ __device__ void Light::SampleDirectionPDF(Ray &ray, Vec3f &lightPoint, Vec3f &lightNormal,float &pdf) const{
+    if(type == AREA_LIGHT && mesh != nullptr){
+        Vec3f hitPoint = ray.origin;
+        Vec3f wi = (hitPoint - lightPoint).normalized();
+        float distanceSquared = (hitPoint - lightPoint).squaredNorm();
+        float cosTheta = fmaxf(lightNormal.dot(wi), 1e-6f);
+        pdf = distanceSquared / (area * cosTheta);
+        // if(area > 0.04)
+        //     printf("r2: %f, cosTheta: %f, area: %f, pdf: %f, triangle num: %d\n", distanceSquared, cosTheta, area, pdf, numTriangles);
     }else{
         printf("Area Light doesn't contain mesh\n");
     }
