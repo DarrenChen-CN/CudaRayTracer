@@ -66,6 +66,7 @@ struct MeshData{
     float area = 0.f;
     Mat4f transform; // Transformation matrix for the mesh
     Mat4f transformInv;
+    int lightID = -1;
 };
 
 void CreateMeshData(MeshData *hostMesh, MeshData *deviceMesh);

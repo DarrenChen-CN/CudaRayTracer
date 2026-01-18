@@ -211,53 +211,6 @@ int BVH::FlattenBVHTree(BVHNode* node, int* offset)
     return currentIndex;
 }
 
-__device__ bool BVH::IsIntersect(const Ray& ray, IntersectionInfo& info) const
-{
-    int cnt = 0;
-    bool hit = false;
-    Vec3f invDir(1.f / ray.direction(0), 1.f / ray.direction(1), 1.f / ray.direction(2));
-    int dirIsNeg[3] = { invDir(0) < 0, invDir(1) < 0, invDir(2) < 0 };
-
-    int toVisitOffset = 0, currentOffset = 0;
-    int nodeToVisit[64]; // Stack to hold nodes to visit
-
-    // #pragma unroll
-    while (true){
-        cnt++;
-        LinearBVHNode node = linearNodes[currentOffset];
-
-        // Check if the ray intersects with the bounding box of the node
-        if (node.bounds.IsIntersect(ray, invDir, dirIsNeg)){
-            // printf("Ray intersects with node %d\n", currentOffset);
-            if (node.triangleIndex != -1)
-            {
-                for(int i = 0; i < linearNodes[currentOffset].numTriangles; i++){
-                    if (orderedTriangles[node.triangleIndex + i].IsIntersect(ray, info))
-                    {
-                        hit = true;
-                    }
-                }
-                if (toVisitOffset == 0)
-                    break;                                    // Stack is empty, no more nodes to visit
-                currentOffset = nodeToVisit[--toVisitOffset]; // Pop the last node to visit
-            }
-            else
-            {
-                nodeToVisit[toVisitOffset++] = node.rightChildIndex; // Push right child node to visit stack
-                currentOffset = currentOffset + 1; // Move to the left node in the linear array
-            }
-        }
-        else
-        {
-            if (toVisitOffset == 0)
-                break;                                    // No more nodes to visit
-            currentOffset = nodeToVisit[--toVisitOffset]; // Pop the last node to visit
-        }
-    }
-    // printf("BVH traversal count: %d\n, hit = %d\n", cnt, hit);
-    return hit;
-}
-
 // __device__ bool BVH::IsIntersect(const Ray& ray, IntersectionInfo& info) const
 // {
 //     int cnt = 0;
@@ -268,49 +221,96 @@ __device__ bool BVH::IsIntersect(const Ray& ray, IntersectionInfo& info) const
 //     int toVisitOffset = 0, currentOffset = 0;
 //     int nodeToVisit[64]; // Stack to hold nodes to visit
 
+//     // #pragma unroll
 //     while (true){
 //         cnt++;
 //         LinearBVHNode node = linearNodes[currentOffset];
 
-//         // printf("Ray intersects with node %d\n", currentOffset);
-//         if (node.triangleIndex != -1){
-//             for(int i = 0; i < linearNodes[currentOffset].numTriangles; i++){
-//                 if (orderedTriangles[node.triangleIndex + i].IsIntersect(ray, info)){
-//                     hit = true;
+//         // Check if the ray intersects with the bounding box of the node
+//         if (node.bounds.IsIntersect(ray, invDir, dirIsNeg)){
+//             // printf("Ray intersects with node %d\n", currentOffset);
+//             if (node.triangleIndex != -1)
+//             {
+//                 for(int i = 0; i < linearNodes[currentOffset].numTriangles; i++){
+//                     if (orderedTriangles[node.triangleIndex + i].IsIntersect(ray, info))
+//                     {
+//                         hit = true;
+//                     }
 //                 }
+//                 if (toVisitOffset == 0)
+//                     break;                                    // Stack is empty, no more nodes to visit
+//                 currentOffset = nodeToVisit[--toVisitOffset]; // Pop the last node to visit
+//             }
+//             else
+//             {
+//                 nodeToVisit[toVisitOffset++] = node.rightChildIndex; // Push right child node to visit stack
+//                 currentOffset = currentOffset + 1; // Move to the left node in the linear array
 //             }
 //         }
 //         else
 //         {
-//             // Find nearest child first
-//             int firstChild, secondChild;
-//             firstChild = node.rightChildIndex;
-//             secondChild = currentOffset + 1;
-//             float tFirst, tSecond;
-//             bool hitFirst = linearNodes[firstChild].bounds.IsIntersect(ray, invDir, dirIsNeg, tFirst);
-//             bool hitSecond = linearNodes[secondChild].bounds.IsIntersect(ray, invDir, dirIsNeg, tSecond);
-//             if(hitFirst && hitSecond){
-//                 if(tFirst < tSecond){
-//                     nodeToVisit[toVisitOffset++] = secondChild;
-//                     nodeToVisit[toVisitOffset++] = firstChild; // Push right child node to visit stack
-//                 }else{
-//                     nodeToVisit[toVisitOffset++] = firstChild; // Push right child node to visit stack
-//                     nodeToVisit[toVisitOffset++] = secondChild; // Push right child node to visit stack
-//                 }
-//             }else if(hitFirst){
-//                 nodeToVisit[toVisitOffset++] = firstChild; // Push right child node to visit stack
-//             }else if(hitSecond){
-//                 nodeToVisit[toVisitOffset++] = secondChild; // Push right child node to visit stack
-//             }
+//             if (toVisitOffset == 0)
+//                 break;                                    // No more nodes to visit
+//             currentOffset = nodeToVisit[--toVisitOffset]; // Pop the last node to visit
 //         }
-
-//         if (toVisitOffset == 0)
-//             break;                                    // No more nodes to visit
-//         currentOffset = nodeToVisit[--toVisitOffset]; // Pop the last node to visit   
 //     }
-
+//     // printf("BVH traversal count: %d\n, hit = %d\n", cnt, hit);
 //     return hit;
 // }
+
+__device__ bool BVH::IsIntersect(const Ray& ray, IntersectionInfo& info) const
+{
+    int cnt = 0;
+    bool hit = false;
+    Vec3f invDir(1.f / ray.direction(0), 1.f / ray.direction(1), 1.f / ray.direction(2));
+    int dirIsNeg[3] = { invDir(0) < 0, invDir(1) < 0, invDir(2) < 0 };
+
+    int toVisitOffset = 0, currentOffset = 0;
+    int nodeToVisit[64]; // Stack to hold nodes to visit
+
+    while (true){
+        cnt++;
+        LinearBVHNode node = linearNodes[currentOffset];
+
+        // printf("Ray intersects with node %d\n", currentOffset);
+        if (node.triangleIndex != -1){
+            for(int i = 0; i < linearNodes[currentOffset].numTriangles; i++){
+                if (orderedTriangles[node.triangleIndex + i].IsIntersect(ray, info)){
+                    hit = true;
+                }
+            }
+        }
+        else
+        {
+            // Find nearest child first
+            int firstChild, secondChild;
+            firstChild = node.rightChildIndex;
+            secondChild = currentOffset + 1;
+            float tFirst, tSecond;
+            bool hitFirst = linearNodes[firstChild].bounds.IsIntersect(ray, invDir, dirIsNeg, tFirst);
+            bool hitSecond = linearNodes[secondChild].bounds.IsIntersect(ray, invDir, dirIsNeg, tSecond);
+            if(hitFirst && hitSecond){
+                if(tFirst < tSecond){
+                    nodeToVisit[toVisitOffset++] = secondChild;
+                    nodeToVisit[toVisitOffset++] = firstChild; // Push right child node to visit stack
+                }else{
+                    nodeToVisit[toVisitOffset++] = firstChild; // Push right child node to visit stack
+                    nodeToVisit[toVisitOffset++] = secondChild; // Push right child node to visit stack
+                }
+            }else if(hitFirst){
+                nodeToVisit[toVisitOffset++] = firstChild; // Push right child node to visit stack
+            }else if(hitSecond){
+                nodeToVisit[toVisitOffset++] = secondChild; // Push right child node to visit stack
+            }
+        }
+
+        if (toVisitOffset == 0)
+            break;                                    // No more nodes to visit
+        currentOffset = nodeToVisit[--toVisitOffset]; // Pop the last node to visit   
+    }
+
+    return hit;
+}
 
 void CreateBVH(BVH *hostBVH, BVH *deviceBVH){
     // cudaMalloc(&deviceBVH, sizeof(BVH));

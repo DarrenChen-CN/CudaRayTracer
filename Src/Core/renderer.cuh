@@ -57,14 +57,6 @@ __device__ bool TraceRay(Ray &ray, BVH *bvh, IntersectionInfo &info)
     return hit;
 }
 
-__device__ float2 DirectionToUV(float3 dir) {
-    // atan2(z, x) 通常返回 [-PI, PI]，需映射到 [0, 1]
-    float u = atan2f(dir.z, dir.x) / (2.0f * PI) + 0.5f;
-    float v = acosf(dir.y) / PI;
-    v = 1 - v;
-    return make_float2(u, v);
-}
-
 __global__ void IntersectionKernel(RenderSegment *segments, RenderParam renderParam, IntersectionInfo *intersectionInfo, int numSegments, int *segmentValidFlags, float *accumulator)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -76,12 +68,11 @@ __global__ void IntersectionKernel(RenderSegment *segments, RenderParam renderPa
     if(!hit){
         // If no hit, accumulate background color (black here)
         int index = segments[idx].index;
-        if(renderParam.usingEnvMap){
-            ray.direction = ray.direction.normalized();
-            float3 dir = make_float3(ray.direction(0), ray.direction(1), ray.direction(2));
-            float2 uv = DirectionToUV(dir);
-            float4 envColor = tex2D<float4>(renderParam.envMap, uv.x, uv.y);
-            Vec3f bgColor = Vec3f(envColor.x, envColor.y, envColor.z);
+        LightManager *lightManager = renderParam.lightManager;
+        // printf("lightManager env idx: %d\n", lightManager -> envMapLightIdx);
+        if(lightManager -> envMapLightIdx != -1){
+            Light *envLight = lightManager -> GetLight(lightManager -> envMapLightIdx);
+            Vec3f bgColor = envLight -> Emission(ray.direction);
             segments[idx].color += segments[idx].weight.cwiseProduct(bgColor);
         }
         AccumulateColor(index, segments[idx].color, accumulator);
@@ -99,14 +90,14 @@ __device__ float MISWeight(float a, float b, int c){
 }
 
 __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, RenderParam renderParam, float *accumulator, int *segmentValidFlags, int idx){
+    Triangle *triangles = renderParam.triangles;
     MeshData *meshData = renderParam.meshData;
     Material *materials = renderParam.materials;
     LightManager *lightManager = renderParam.lightManager;
     BVH *bvh = renderParam.bvh;
     Sampler *sampler = renderParam.sampler;
     float rr = renderParam.rr;
-    bool usingEnvMap = renderParam.usingEnvMap;
-    cudaTextureObject_t envMap = renderParam.envMap;
+    Bounds3D sceneBounds = renderParam.sceneBounds;
 
     Material &material = materials[meshData[info.meshID].materialID];
     Vec3f hitPoint = info.hitPoint;
@@ -128,10 +119,11 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
             // segment.remainingBounces = 0; // Terminate the path if hitting light after first bounce
             // return ;
             // MIS
-            float pdfSelectLight;
-            Light *light = lightManager -> SampleLight(sampler, idx, pdfSelectLight);
+            int lightID = meshData[info.meshID].lightID;
+            // printf("Hit light ID: %d\n", lightID);
+            Light *light = lightManager -> GetLight(lightID);
             float pdfLight;
-            light -> SampleDirectionPDF(segment.ray, info.hitPoint, info.normal, pdfLight);
+            light -> SampleSolidAnglePDF(segment.ray, info.hitPoint, info.normal, pdfLight);
             // printf("pdfLight on light hit: %f\n", pdfLight);
 
             // float r2 = (hitPoint - segment.ray.origin).squaredNorm();
@@ -155,7 +147,7 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
     if(light != nullptr){
         float sampleLightPointPDF;
         TriangleSampleInfo sampleLightPointInfo;
-        light -> SamplePoint(sampleLightPointInfo, sampleLightPointPDF, sampler, idx);
+        light -> SamplePoint(triangles, sceneBounds, sampleLightPointInfo, sampleLightPointPDF, sampler, idx);
         
         bool visible = light -> Visible(info, sampleLightPointInfo, bvh);
         // bool visible = true;
@@ -165,7 +157,7 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
             Ray sampleLightRay;
             sampleLightRay.origin = hitPoint;
             sampleLightRay.direction = dirWi;
-            light -> SampleDirectionPDF(sampleLightRay, sampleLightPointInfo.position, sampleLightPointInfo.normal, pdfLight);
+            light -> SampleSolidAnglePDF(sampleLightRay, sampleLightPointInfo.position, sampleLightPointInfo.normal, pdfLight);
             pdfLight *= selectLightPDF;
             // printf("pdflight: %f\n", pdfLight);
             float cosTheta = hitNormal.dot(dirWi);
@@ -176,34 +168,8 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
             float pdfBrdf;
             material.Pdf(wo, hitNormal, dirWi, pdfBrdf);
             float lightMisWeight = MISWeight(pdfLight, pdfBrdf, 2);
-            // printf("pdfLight: %f, pdfBrdf: %f, weight: %f\n", pdfLight, pdfBrdf, lightMisWeight);
             segment.color += lightMisWeight * segment.weight.cwiseProduct(dirL);
             Vec3f temp = lightMisWeight * segment.weight.cwiseProduct(dirL);
-            // printf("temp: %f, %f, %f\n", temp(0), temp(1), temp(2));
-        }else{
-            if(renderParam.usingEnvMap){
-                // Sample env map
-                Vec3f dirWi = (segment.ray.origin - hitPoint).normalized();
-                float r2 = (hitPoint - segment.ray.origin).squaredNorm();
-                float cosTheta = hitNormal.dot(dirWi);
-                dirWi = dirWi.normalized();
-                float3 dir = make_float3(dirWi(0), dirWi(1), dirWi(2));
-                float2 uv = DirectionToUV(dir);
-                float4 envColor = tex2D<float4>(renderParam.envMap, uv.x, uv.y);
-                Vec3f bgColor = Vec3f(envColor.x, envColor.y, envColor.z);
-
-                Vec3f dirBrdf = material.Evaluate(wo, hitNormal, dirWi);
-                Vec3f dirL = bgColor.cwiseProduct(dirBrdf) * cosTheta / 1.0f; // pdf = 1 for env map
-
-                // MIS weight
-                float pdfBrdf;
-                material.Pdf(wo, hitNormal, dirWi, pdfBrdf);
-                float envMisWeight = MISWeight(1.0f, pdfBrdf, 2);
-                // printf("pdfEnv: %f, pdfBrdf: %f, weight: %f\n", 1.0f, pdfBrdf, envMisWeight);
-                segment.color += envMisWeight * segment.weight.cwiseProduct(dirL);
-                Vec3f temp = envMisWeight * segment.weight.cwiseProduct(dirL);
-                // printf("temp env: %f, %f, %f\n", temp(0), temp(1), temp(2));
-            }
         }
     }
     
@@ -267,10 +233,11 @@ __global__ void GatherKernel(uchar4 *pixels, float *accumulator, int spp, Render
     j = height - j - 1; // Flip vertically for OpenGL
     int segIndex = j * width + i;
 
+    // gamma
     pixels[segIndex] = make_uchar4(
-        static_cast<unsigned char>(fminf(fmaxf(color(0) * 255.0f, 0.0f), 255.0f)),
-        static_cast<unsigned char>(fminf(fmaxf(color(1) * 255.0f, 0.0f), 255.0f)),
-        static_cast<unsigned char>(fminf(fmaxf(color(2) * 255.0f, 0.0f), 255.0f)),
+        static_cast<unsigned char>(fminf(fmaxf(powf(color(0), 1.0f / 2.2f) * 255.0f, 0.0f), 255.0f)),
+        static_cast<unsigned char>(fminf(fmaxf(powf(color(1), 1.0f / 2.2f) * 255.0f, 0.0f), 255.0f)),
+        static_cast<unsigned char>(fminf(fmaxf(powf(color(2), 1.0f / 2.2f) * 255.0f, 0.0f), 255.0f)),
         255);
 }
 

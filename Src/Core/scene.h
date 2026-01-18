@@ -19,14 +19,13 @@ class Light;
 
 struct RenderParam{
     int width, height;
+    Triangle *triangles;
     MeshData *meshData;
     Material *materials;
     LightManager *lightManager;
     BVH *bvh;
     Camera *camera;
     Sampler *sampler;
-    cudaTextureObject_t envMap;
-    bool usingEnvMap;
     Bounds3D sceneBounds;
     float rr;
     int spp;
@@ -65,12 +64,11 @@ public:
     BVH *bvh;
     MeshData *hostMeshes;
     MeshData *meshes;
+    std::unordered_map<std::string, int> meshMap;
     int numMeshes;
     Camera *camera;
     Sampler *sampler;
     Bounds3D sceneBounds;
-    HDRTexture *EnvironmentMap = nullptr;
-    bool usingEnvMap = false;
 
     int width, height;
     float fovy;

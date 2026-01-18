@@ -290,6 +290,7 @@ bool Scene::ParseMaterials(const json& materialsJson) {
 
         mesh.name = objJson["name"];
         mesh.meshID = i;
+        meshMap[mesh.name] = i;
         mesh.materialID = materialId;
 
         std::string path = objJson["path"];
@@ -380,37 +381,6 @@ __host__ __device__ bool Scene::ParseLights(const json& lightsJson) {
                 light.emission = Vec3f(em[0], em[1], em[2]);
             }
 
-            std::string path = lightJson["path"];
-            Mat4f transform = Mat4f::Identity();
-            Mat4f translate = Mat4f::Identity();
-            Mat4f rotate = Mat4f::Identity();
-            Mat4f scale = Mat4f::Identity();
-            if (lightJson.contains("translate")) {
-                auto trans = lightJson["translate"];
-                translate = Translate(Vec3f(trans[0], trans[1], trans[2]));
-            }
-
-            if(lightJson.contains("rotate")){
-                auto rot = lightJson["rotate"];
-                for(auto& r : rot){
-                    if(r.contains("rotateX")){
-                        float angle = r["rotateX"];
-                        rotate = RotateX(angle) * rotate;
-                    }else if(r.contains("rotateY")){
-                        float angle = r["rotateY"];
-                        rotate = RotateY(angle) * rotate;
-                    }else if(r.contains("rotateZ")){
-                        float angle = r["rotateZ"];
-                        rotate = RotateZ(angle) * rotate;
-                    }
-                }
-            }
-
-            if(lightJson.contains("scale")){
-                auto s = lightJson["scale"];
-                scale = Scale(Vec3f(s[0], s[1], s[2]));
-            }
-
             if(lightJson.contains("material")){
                 std::string matName = lightJson["material"];
                 if (materialMap.find(matName) != materialMap.end()) {
@@ -423,20 +393,36 @@ __host__ __device__ bool Scene::ParseLights(const json& lightsJson) {
                 }
             }
 
-            transform = translate * rotate * scale;
-            Mat4f transformInv = transform.inverse();
-            std::vector<Triangle> objectTris = LoadObject(path, i + numMeshes, transform, transformInv);
-            light.numTriangles = objectTris.size();
-            light.mesh = new Triangle[light.numTriangles];
-            light.area = 0.f;
-            for(auto& tri : objectTris)light.area += tri.area;
-            printf("Area Light %d: numTriangles=%d, total area=%f\n", i, light.numTriangles, light.area);
-            memcpy(light.mesh, objectTris.data(), light.numTriangles * sizeof(Triangle));
-            light.transform = transform;
-            light.transformInv = transformInv;
+            std::string lightMeshName = lightJson["lightMeshName"];
+            if(meshMap.find(lightMeshName) == meshMap.end()){
+                std::cerr << "Error: Light mesh '" << lightMeshName << "' not found" << std::endl;
+                continue;
+            }
+            int meshId = meshMap[lightMeshName];
+            MeshData *hostMesh = &hostMeshes[meshId];
+            hostMesh -> lightID = i;
+            CreateMeshData(hostMesh, &meshes[meshId]);
+            light.mesh = meshes + meshId;
 
             CreateLight(&light, &(hostLightManager -> lights[i]));
-        }else{
+        }else if(lightJson["type"] == "env"){
+            light.type = ENV_LIGHT;
+            if(lightJson.contains("path")){
+                std::string path = lightJson["path"];
+                HDRTexture *hostEnvironmentMap = new HDRTexture(path);
+                printf("cudaTextureObj: %llu\n", hostEnvironmentMap -> cudaTextureObj);
+                HDRTexture *deviceEnvironmentMap;
+                CHECK_CUDA_ERROR(cudaMalloc(&deviceEnvironmentMap, sizeof(HDRTexture)));
+                CreateHDRTexture(hostEnvironmentMap, deviceEnvironmentMap);
+                light.envMap = deviceEnvironmentMap;
+            }else{
+                std::cerr << "Error: Env light missing 'path' field" << std::endl;
+                continue;
+            }
+            CreateLight(&light, &(hostLightManager -> lights[i]));
+            hostLightManager -> envMapLightIdx = i;
+        }
+        else{
             std::cerr << "Error: Unsupported light type " << lightJson["type"] << std::endl;
             continue;
         }
@@ -460,20 +446,6 @@ __host__ __device__ bool Scene::ParseTextures(const json& texturesJson) {
 
         if (!textureJson.contains("type")) {
             std::cerr << "Error: Texture missing 'type' field" << std::endl;
-            continue;
-        }
-
-        if(textureJson["type"] == "envmap"){
-            if(textureJson.contains("path")){
-                std::string path = textureJson["path"];
-                EnvironmentMap = new HDRTexture(path);
-                usingEnvMap = true;
-            }else{
-                std::cerr << "Error: Envmap texture missing 'path' field" << std::endl;
-                continue;
-            }
-        }else{
-            std::cerr << "Error: Unsupported light type " << textureJson["type"] << std::endl;
             continue;
         }
     }
@@ -507,19 +479,13 @@ __host__ void Scene::InitCameraParam(){
 __host__ void Scene::SetRenderParam(){
     renderParam.width = width;
     renderParam.height = height;
+    renderParam.triangles = triangles;
     renderParam.meshData = meshes;
     renderParam.materials = materials;
     renderParam.lightManager = lightManager;
     renderParam.bvh = bvh;
     renderParam.camera = camera;
     renderParam.sampler = sampler;
-    if(EnvironmentMap){
-        renderParam.envMap = EnvironmentMap -> cudaTextureObj;
-        renderParam.usingEnvMap = true;
-    }else{
-        renderParam.envMap = 0;
-        renderParam.usingEnvMap = false;
-    }
     renderParam.sceneBounds = sceneBounds;
     renderParam.rr = rr;
     renderParam.maxBounces = maxBounces;

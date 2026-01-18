@@ -18,6 +18,8 @@ public:
     Light* lights = nullptr;
     int numLights = 0;
     LightSelectStrategy strategy = UNIFORM;
+
+    int envMapLightIdx = -1;
 };
 
 void CreateLightManager(LightManager *hostLightManager, LightManager *deviceLightManager);

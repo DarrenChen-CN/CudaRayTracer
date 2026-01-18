@@ -21,29 +21,29 @@
       "name": "material0",
       "type": "diffuse",
       "basecolor": [
-        0.01,
-        0.01,
-        0.01
+        0.05,
+        0.05,
+        0.05
       ]
     },
     {
       "name": "material1",
       "type": "pbr",
       "basecolor": [
-        1,
-        1,
-        1
+        1.0,
+        1.0,
+        1.0
       ],
       "metallic": 1,
-      "roughness": 0.01
+      "roughness": 0.005
     },
     {
       "name": "material2",
       "type": "pbr",
       "basecolor": [
-        1,
-        1,
-        1
+        1.0,
+        1.0,
+        1.0
       ],
       "metallic": 1,
       "roughness": 0.1
@@ -52,58 +52,58 @@
       "name": "material3",
       "type": "pbr",
       "basecolor": [
-        1,
-        1,
-        1
+        1.0,
+        1.0,
+        1.0
       ],
       "metallic": 1,
-      "roughness": 0.2
+      "roughness": 0.25
     },
     {
       "name": "material4",
       "type": "pbr",
       "basecolor": [
-        1,
-        1,
-        1
+        1.0,
+        1.0,
+        1.0
       ],
       "metallic": 1,
-      "roughness": 0.7
+      "roughness": 0.6
     },
     {
       "name": "light1",
       "type": "light",
       "emission": [
-        300.0,
-        300.0,
-        300.0
+        2500.0,
+        500.0,
+        1500.0
       ]
     },
     {
       "name": "light2",
       "type": "light",
       "emission": [
-        300.0,
-        300.0,
-        300.0
+        200.0,
+        180.0,
+        20.0
       ]
     },
     {
       "name": "light3",
       "type": "light",
       "emission": [
-        300.0,
-        300.0,
-        300.0
+        100.0,
+        500.0,
+        100.0
       ]
     },
     {
       "name": "light4",
       "type": "light",
       "emission": [
-        300.0,
-        300.0,
-        300.0
+        5.0,
+        45.0,
+        55.0
       ]
     }
   ],
@@ -313,85 +313,25 @@
     {
       "name": "Light0",
       "type": "area",
-      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_5.obj",
-      "translate": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "rotate": [
-        {
-          "rotateX": 0
-        }
-      ],
+      "lightMeshName": "5",
       "material": "light1"
     },
     {
       "name": "Light1",
       "type": "area",
-      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_6.obj",
-      "translate": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "rotate": [
-        {
-          "rotateX": 0
-        }
-      ],
+      "lightMeshName": "6",
       "material": "light2"
     },
     {
       "name": "Light2",
       "type": "area",
-      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_7.obj",
-      "translate": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "rotate": [
-        {
-          "rotateX": 0
-        }
-      ],
+      "lightMeshName": "7",
       "material": "light3"
     },
     {
       "name": "Light3",
       "type": "area",
-      "path": "E://code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_8.obj",
-      "translate": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "rotate": [
-        {
-          "rotateX": 0
-        }
-      ],
+      "lightMeshName": "8",
       "material": "light4"
     }
   ]

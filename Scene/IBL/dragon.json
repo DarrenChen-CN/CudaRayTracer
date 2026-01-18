@@ -2,8 +2,8 @@
     "camera": {
         "type": "pinhole",
         "resolution": [
-            720,
-            720
+            1024,
+            1024
         ],
         "fov": 39.3077,
         "max_bounces": 4,
@@ -56,5 +56,11 @@
             "material": "PBRGold"
         }
     ],
-    "lights": []
+    "lights": [
+        {
+            "name": "envLight",
+            "type": "env",
+            "path": "E://code/projects/CudaRayTracer/Image/HDR/industrial_wooden_attic_4k.hdr"
+        }
+    ]
 }

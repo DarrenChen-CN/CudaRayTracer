@@ -258,22 +258,7 @@
     {
       "name": "Light0",
       "type": "area",
-      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_1.obj",
-      "translate": [
-        0,
-        0,
-        0
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ],
-      "rotate": [
-        {
-          "rotateX": 0
-        }
-      ],
+      "lightMeshName": "1",
       "material": "Light"
     }
   ]
