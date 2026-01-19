@@ -124,15 +124,7 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
             Light *light = lightManager -> GetLight(lightID);
             float pdfLight;
             light -> SampleSolidAnglePDF(segment.ray, info.hitPoint, info.normal, pdfLight);
-            // printf("pdfLight on light hit: %f\n", pdfLight);
 
-            // float r2 = (hitPoint - segment.ray.origin).squaredNorm();
-            // // float cosTheta2 = fabs(hitNormal.dot(wo));
-            // float cosTheta2 = fmaxf(hitNormal.dot(wo), 1e-6f);
-            // float pdfLight2 = pdfSelectLight * 1.f / light -> area;
-            // pdfLight2 = (r2 * pdfLight2) / cosTheta2;
-            // printf("pdflight: %f, pdflight2: %f\n", pdfLight, pdfLight2);
-            // printf("pdf select light: %f\n", pdfSelectLight);
             // MIS weight
             float brdfMisWeight = MISWeight(segment.pdfBrdf, pdfLight, 2);
             segment.color += segment.weight.cwiseProduct(material.ke) * brdfMisWeight;

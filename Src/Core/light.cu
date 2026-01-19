@@ -15,7 +15,7 @@
     Ray ray(lightPoint + 1e-2 * rayDirection, rayDirection);
 
     IntersectionInfo testInfo;
-    bool hit = sceneBVH -> IsIntersect(ray, testInfo);
+    bool hit = sceneBVH -> IsIntersect(ray, testInfo, 1e-6f, 1e8);
     // return true;
     if(!hit)return true;
 
@@ -93,6 +93,7 @@ __device__ void Light::SampleEnvLight(Bounds3D sceneBounds, TriangleSampleInfo &
         // Sample spherical direction
         float u, v, pdf;
         envMap -> Sample(u, v, sampler, idx);
+        // printf("Env Light Sample UV: (%f, %f)\n", u, v);
         float theta = u * 2.f * PI;
         float phi = acosf(1.f - 2.f * v);
         float x = sinf(phi) * sinf(theta);
@@ -109,12 +110,13 @@ __device__ void Light::SampleEnvLight(Bounds3D sceneBounds, TriangleSampleInfo &
 __device__ void Light::SampleEnvLightPDF(Bounds3D sceneBounds, Vec3f &samplePoint, float &pdf) const{
     if(type == ENV_LIGHT && envMap != nullptr){
         Vec3f dir = (samplePoint - sceneBounds.Center()).normalized();
-        // Convert dir to uv
+        // Convert dir to spherical coordinates
         float theta = acosf(dir(1)); // y is up
         float phi = atan2f(dir(0), dir(2));
         if(phi < 0) phi += 2.f * PI;
+        // Map to [0,1]
         float u = phi / (2.f * PI);
-        float v = 1.f - (theta / PI); // flip v
+        float v = (theta / PI);
         envMap -> SamplePDF(u, v, pdf);
     }else{
         printf("Env Light doesn't contain envMap\n");
@@ -124,13 +126,14 @@ __device__ void Light::SampleEnvLightPDF(Bounds3D sceneBounds, Vec3f &samplePoin
 __device__ void Light::SampleEnvLightSolidAnglePDF(Ray &ray, Vec3f &lightPoint, float &pdf) const{
     if(type == ENV_LIGHT && envMap != nullptr){
         Vec3f dir = (lightPoint - ray.origin).normalized();
-        // Convert dir to uv
+        // Convert dir to spherical coordinates
         float theta = acosf(dir(1)); // y is up
         float phi = atan2f(dir(0), dir(2));
         if(phi < 0) phi += 2.f * PI;
+        // Map to [0,1]
         float u = phi / (2.f * PI);
         float v = 1.f - (theta / PI); // flip v
-        envMap -> SampleSolidAnglePDF(u, v, pdf);
+        envMap -> SamplePDF(u, v, pdf);
     }else{
         printf("Env Light doesn't contain envMap\n");
     }
@@ -144,7 +147,7 @@ __device__ Vec3f Light::Emission(Vec3f &wi) const{
         if(phi < 0) phi += 2.f * PI;
         // Map to [0,1]
         float u = phi / (2.f * PI);
-        float v = 1.f - (theta / PI); // flip v
+        float v = (theta / PI);
         // printf("Env Light Emission UV: (%f, %f)\n", u, v);
         // printf("cudaTextureObj: %d\n", envMap -> cudaTextureObj);
         float4 color = tex2D<float4>(envMap -> cudaTextureObj, u, v);

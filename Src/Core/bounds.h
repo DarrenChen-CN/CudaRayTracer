@@ -66,7 +66,7 @@ public:
         return exit - enter + 1e-2 >= 0 && exit + 1e-2 >= 0;
     }
 
-    __device__ bool IsIntersect(const Ray& ray, Vec3f invDir, int dirIsNeg[3], float &t)
+    __device__ bool IsIntersect(const Ray& ray, Vec3f invDir, int dirIsNeg[3], float &t, float tMin, float tMax)
     {
         Vec3f tEnter = (min - ray.origin).cwiseProduct(invDir);
         Vec3f tExit = (max - ray.origin).cwiseProduct(invDir);
@@ -85,7 +85,7 @@ public:
         // float exit = fminf(fminf(tExit(0), tExit(1)), tExit(2));
         // float enter = fmaxf(fmaxf(tEnter(0), tEnter(1)), tEnter(2));
         t = enter;
-        return exit - enter + 1e-2 >= 0 && exit + 1e-2 >= 0;
+        return exit - enter + 1e-2 >= 0 && exit + 1e-2 >= 0 && enter <= tMax && exit >= tMin;
     }
 
     __host__ __device__ float SurfaceArea()

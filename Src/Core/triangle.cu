@@ -13,7 +13,7 @@ __host__ __device__ Triangle::Triangle(Vertex& v0, Vertex& v1, Vertex& v2, int m
 __host__ __device__ Triangle::Triangle() {}
 
 
-__device__ bool Triangle::IsIntersect(const Ray& ray, IntersectionInfo& info) const
+__device__ bool Triangle::IsIntersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax) const
 {
     // // Reference to PBRT V3
     // // Translating ray origin to (0, 0, 0)
@@ -121,8 +121,7 @@ __device__ bool Triangle::IsIntersect(const Ray& ray, IntersectionInfo& info) co
 
     float b0 = 1 - b1 - b2;
 
-    if(t < 1e-2)
-        return false;
+    if (t < tMin || t > tMax)return false;
 
     info.hitTime = t;
     info.hitPoint = b0 * v0.position + b1 * v1.position + b2 * v2.position;

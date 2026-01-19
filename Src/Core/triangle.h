@@ -50,7 +50,7 @@ public:
     __host__ __device__ Triangle();
     __host__ __device__ Triangle(Vertex& v0, Vertex& v1, Vertex& v2, int meshID);
 
-    __device__ bool IsIntersect(const Ray& ray, IntersectionInfo& info) const;
+    __device__ bool IsIntersect(const Ray& ray, IntersectionInfo& info, float tMin = 0.f, float tMax = 1e8) const;
     __device__ void Sample(TriangleSampleInfo &info, Sampler *sampler, int idx) const;
     __host__ __device__ Bounds3D GetBounds() const;
 };

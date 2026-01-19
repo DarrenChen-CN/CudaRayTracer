@@ -148,9 +148,13 @@ __device__ void HDRTexture::Sample(float &u, float &v, Sampler *sampler, int idx
     // convert to texture coordinates
     u = ( (float)uIdx + 0.5f ) / (float)width;
     v = ( (float)vIdx + 0.5f ) / (float)height;
+
+    float pdf;
+    SampleSolidAnglePDF(u, v, pdf);
+    // printf("Sampled HDR Texture UV: (%f, %f), PDF: %f\n", u, v, pdf);
 }
 
-__device__ void HDRTexture::SampleSolidAnglePDF(float &u, float &v, float &pdf) const{
+__device__ void HDRTexture::SamplePDF(float &u, float &v, float &pdf) const{
     u = Clamp(0.0f, 0.999999f, u); // 确保不会越界
     v = Clamp(0.0f, 0.999999f, v);
     // (u, v) -> (uIdx, vIdx)

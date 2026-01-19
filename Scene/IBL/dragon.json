@@ -15,12 +15,7 @@
             -1
         ]
     },
-    "textures": [
-        {
-            "type": "envmap",
-            "path": "E://code/projects/CudaRayTracer/Image/HDR/industrial_wooden_attic_4k.hdr"
-        }
-    ],
+    "textures": [],
     "materials": [
         {
             "name": "PBRGold",
@@ -32,6 +27,17 @@
             ],
             "metallic": 1,
             "roughness": 0.5
+        },
+        {
+            "name": "WhiteTable",
+            "type": "pbr",
+            "basecolor": [
+                0.92,
+                0.92,
+                0.93
+            ],
+            "metallic": 1,
+            "roughness": 0.1
         }
     ],
     "objects": [
@@ -54,13 +60,33 @@
                 }
             ],
             "material": "PBRGold"
+        },
+        {
+            "name": "table",
+            "path": "E://code/projects/CudaRayTracer/Model/Table/table.obj",
+            "translate": [
+                0,
+                -0.28,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0
+                }
+            ],
+            "material": "WhiteTable"
         }
     ],
     "lights": [
         {
             "name": "envLight",
             "type": "env",
-            "path": "E://code/projects/CudaRayTracer/Image/HDR/industrial_wooden_attic_4k.hdr"
+            "path": "E://code/projects/CudaRayTracer/Image/HDR/brown_photostudio_02_4k.hdr"
         }
     ]
 }

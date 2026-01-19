@@ -1,0 +1,92 @@
+{
+    "camera": {
+        "type": "pinhole",
+        "resolution": [
+            1024,
+            1024
+        ],
+        "fov": 39.3077,
+        "max_bounces": 4,
+        "rr": 0.6,
+        "spp": 4096,
+        "direction": [
+            0,
+            0,
+            -1
+        ]
+    },
+    "textures": [],
+    "materials": [
+        {
+            "name": "PBRTeal",
+            "type": "pbr",
+            "basecolor": [
+                0.3,
+                0.9,
+                0.25
+            ],
+            "metallic": 1,
+            "roughness": 0.5
+        },
+        {
+            "name": "WhiteTable",
+            "type": "pbr",
+            "basecolor": [
+                0.92,
+                0.92,
+                0.93
+            ],
+            "metallic": 1,
+            "roughness": 0.1
+        }
+    ],
+    "objects": [
+        {
+            "name": "bunny",
+            "path": "E://code/projects/CudaRayTracer/Model/Bunny/bunny144k.obj",
+            "translate": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0
+                }
+            ],
+            "material": "PBRTeal"
+        },
+        {
+            "name": "table",
+            "path": "E://code/projects/CudaRayTracer/Model/Table/table.obj",
+            "translate": [
+                0,
+                -0.42,
+                0
+            ],
+            "scale": [
+                2,
+                1,
+                2
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0
+                }
+            ],
+            "material": "WhiteTable"
+        }
+    ],
+    "lights": [
+        {
+            "name": "envLight",
+            "type": "env",
+            "path": "E://code/projects/CudaRayTracer/Image/HDR/brown_photostudio_02_4k.hdr"
+        }
+    ]
+}

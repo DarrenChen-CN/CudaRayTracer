@@ -44,7 +44,7 @@ class BVH
 public:
     __host__ BVH();
     __host__  BVH(Triangle *triangles, int numTriangles, int maxTrianglesInLeaf = 4, BVHSplitMethod method = SAH);
-    __device__ bool IsIntersect(const Ray& ray, IntersectionInfo& info) const;
+    __device__ bool IsIntersect(const Ray& ray, IntersectionInfo& info, float tMin = 0.f, float tMax = 1e8) const;
     __host__ int FlattenBVHTree(BVHNode* node, int* offset);
     __host__ BVHNode* RecursiveBuild(Triangle *triangles, int start, int end, std::vector<Triangle>&orderedTriangles, int depth = 0);
 

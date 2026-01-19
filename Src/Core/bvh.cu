@@ -258,7 +258,7 @@ int BVH::FlattenBVHTree(BVHNode* node, int* offset)
 //     return hit;
 // }
 
-__device__ bool BVH::IsIntersect(const Ray& ray, IntersectionInfo& info) const
+__device__ bool BVH::IsIntersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax) const
 {
     int cnt = 0;
     bool hit = false;
@@ -267,6 +267,8 @@ __device__ bool BVH::IsIntersect(const Ray& ray, IntersectionInfo& info) const
 
     int toVisitOffset = 0, currentOffset = 0;
     int nodeToVisit[64]; // Stack to hold nodes to visit
+
+    info.hitTime = tMax;
 
     while (true){
         cnt++;
@@ -287,8 +289,8 @@ __device__ bool BVH::IsIntersect(const Ray& ray, IntersectionInfo& info) const
             firstChild = node.rightChildIndex;
             secondChild = currentOffset + 1;
             float tFirst, tSecond;
-            bool hitFirst = linearNodes[firstChild].bounds.IsIntersect(ray, invDir, dirIsNeg, tFirst);
-            bool hitSecond = linearNodes[secondChild].bounds.IsIntersect(ray, invDir, dirIsNeg, tSecond);
+            bool hitFirst = linearNodes[firstChild].bounds.IsIntersect(ray, invDir, dirIsNeg, tFirst, tMin, info.hitTime);
+            bool hitSecond = linearNodes[secondChild].bounds.IsIntersect(ray, invDir, dirIsNeg, tSecond, tMin, info.hitTime);
             if(hitFirst && hitSecond){
                 if(tFirst < tSecond){
                     nodeToVisit[toVisitOffset++] = secondChild;

@@ -2,8 +2,8 @@
   "camera": {
     "type": "pinhole",
     "resolution": [
-      720,
-      720
+      1024,
+      1024
     ],
     "fov": 39.3077,
     "max_bounces": 4,
@@ -35,7 +35,7 @@
         0.34
       ],
       "metallic": 1,
-      "roughness": 0.5
+      "roughness": 0.1
     },
     {
       "name": "DiffuseYellow",
@@ -68,9 +68,9 @@
       "name": "Light",
       "type": "light",
       "emission": [
-        34.0,
-        34.0,
-        34.0
+        1.0,
+        1.0,
+        1.0
       ]
     }
   ],
@@ -219,8 +219,8 @@
       "name": "8",
       "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_8.obj",
       "translate": [
-        100,
-        100,
+        0,
+        0,
         0
       ],
       "scale": [
@@ -262,6 +262,11 @@
       "type": "area",
       "lightMeshName": "1",
       "material": "Light"
+    },
+    {
+      "name": "envlight",
+      "type": "env",
+      "path": "E://code/projects/CudaRayTracer/Image/HDR/brown_photostudio_02_4k.hdr"
     }
   ]
 }

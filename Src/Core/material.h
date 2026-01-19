@@ -8,6 +8,17 @@ enum MaterialType {
     PBR
 };
 
+struct MaterialSampleData {
+    Vec3f hitPoint;
+    Vec3f wi;
+    Vec3f wo;
+    Vec3f normal;
+    float pdf;
+
+    // bssrdf
+    Vec3f outgoingPoint;
+};
+
 class Material {
 
 public:
