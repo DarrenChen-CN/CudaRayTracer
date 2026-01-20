@@ -24,3 +24,5 @@ __host__ __device__ Mat4f Scale(const Vec3f &scale);
 __host__ __device__ Mat4f RotateX(float angle);
 __host__ __device__ Mat4f RotateY(float angle);
 __host__ __device__ Mat4f RotateZ(float angle);
+
+__device__ void CreateONB(const Vec3f& normal, Vec3f& tangent, Vec3f& bitangent);

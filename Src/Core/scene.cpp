@@ -199,6 +199,8 @@ bool Scene::ParseMaterials(const json& materialsJson) {
             mat.type = LIGHT;
         }else if(matJson["type"] == "pbr"){
             mat.type = PBR;
+        }else if(matJson["type"] == "subsurface"){
+            mat.type = SUBSURFACE;
         }
         else{
             std::cerr << "Error: Unsupported material type " << matJson["type"] << std::endl;
@@ -244,6 +246,33 @@ bool Scene::ParseMaterials(const json& materialsJson) {
             mat.F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), mat.basecolor, mat.metallic);
             std::cout << "F0: " << mat.F0(0) << ", " << mat.F0(1) << ", " << mat.F0(2) << std::endl;
             // mat.kd = (Vec3f(1.f, 1.f, 1.f) - mat.ks) * (1.0f - mat.metallic);
+        }else if(mat.type == SUBSURFACE){
+            if (matJson.contains("basecolor")) {
+                auto basecolor = matJson["basecolor"];
+                mat.basecolor = Vec3f(basecolor[0], basecolor[1], basecolor[2]);
+            } else {
+                mat.basecolor = Vec3f(0.0f, 0.0f, 0.0f);
+            }
+
+            if(matJson.contains("scatter_distance")){
+                auto scatter = matJson["scatter_distance"];
+                mat.scatterDistance = Vec3f(scatter[0], scatter[1], scatter[2]);
+            }else{
+                mat.scatterDistance = Vec3f(1.0f, 1.0f, 1.0f);
+            }
+
+            if(matJson.contains("ior")){
+                mat.ior = matJson["ior"];
+            }
+
+            if(matJson.contains("roughness")){
+                mat.roughness = matJson["roughness"];
+            }
+
+            mat.metallic = 0.0f;
+            float f0 = ((mat.ior - 1.f) * (mat.ior - 1.f)) / ((mat.ior + 1.f) * (mat.ior + 1.f));
+            mat.F0 = Vec3f(f0, f0, f0);
+            std::cout << "Material " << mat.name << ": basecolor=(" << mat.basecolor(0) << "," << mat.basecolor(1) << "," << mat.basecolor(2) << "), scatterDistance=(" << mat.scatterDistance(0) << "," << mat.scatterDistance(1) << "," << mat.scatterDistance(2) << "), ior=" << mat.ior << ", roughness=" << mat.roughness << std::endl;
         }
 
         materialMap[mat.name] = i;

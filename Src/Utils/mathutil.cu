@@ -144,3 +144,12 @@ __host__ __device__ float Luminance(const Vec3f& color) {
     // 使用 Rec. 709 标准权重
     return 0.2126f * color(0) + 0.7152f * color(1) + 0.0722f * color(2);
 }
+
+__device__ void CreateONB(const Vec3f& normal, Vec3f& tangent, Vec3f& bitangent){
+    if (fabs(normal(0)) > fabs(normal(1))){
+        tangent = Vec3f(-normal(2), 0, normal(0)).normalized();
+    } else {
+        tangent = Vec3f(0, normal(2), -normal(1)).normalized();
+    }
+    bitangent = normal.cross(tangent).normalized();
+}

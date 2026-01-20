@@ -5,19 +5,11 @@
 enum MaterialType {
     LIGHT,
     DIFFUSE,
-    PBR
+    PBR,
+    SUBSURFACE
 };
 
-struct MaterialSampleData {
-    Vec3f hitPoint;
-    Vec3f wi;
-    Vec3f wo;
-    Vec3f normal;
-    float pdf;
-
-    // bssrdf
-    Vec3f outgoingPoint;
-};
+class BVH;
 
 class Material {
 
@@ -27,7 +19,7 @@ public:
 
     __device__ Vec3f Evaluate(Vec3f& wi, Vec3f& normal, Vec3f& wo) const;
     __device__ void Pdf(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf) const;
-    __device__ void Sample(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, Sampler* sampler, int idx) const;
+    __device__ void Sample(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, Sampler* sampler, int idx) const; // bvh for subsurface scattering
 
     // diffuse
     __device__ Vec3f EvaluateDiffuse(Vec3f& wi, Vec3f& normal, Vec3f& wo) const;
@@ -40,7 +32,17 @@ public:
     __device__ void SamplePBR(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, Sampler* sampler, int idx) const; 
     __device__ void DistributionGGX(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& D) const;
     __device__ void FresnelSchlick(Vec3f& wi, Vec3f& normal, Vec3f& wo, Vec3f& F) const;
+    __device__ void Fresnel(Vec3f& wi, Vec3f& normal, Vec3f& F) const;
     __device__ void GeometrySchlickGGX(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& G) const;
+
+    // Subsurface Scattering
+    __device__ Vec3f EvaluateSpatialDiffusionProfile(Vec3f& wi, Vec3f& normal, Vec3f& hitPoint, Vec3f& outgoingPoint, Vec3f &outgoingNormal) const;
+    __device__ void SampleSpatialDiffusionProfile(Vec3f& wi, Vec3f& normal, Vec3f& hitPoint, Vec3f& outgoingPoint, Vec3f &outgoingNormal, float& pdf, Sampler* sampler, int idx, BVH *bvh) const; // sample outgoint point based on diffusion profile
+    __device__ void PdfSpatialDiffusionProfile(Vec3f& wi, Vec3f& normal, Vec3f& hitPoint, Vec3f& outgoingPoint, float& pdf) const;
+    __device__ void SampleBurleyDiffusionProfile(float &distance, float &pdf, Sampler* sampler, int idx) const; // sample r based on R(r)
+    __device__ void BurleyDiffusionProfile(float& distance, float& pdf, int channel) const; // R(r)
+    __device__ void PdfBurleyDiffusionProfile(float& distance, float& pdf) const;
+    __device__ void ProbeOutgongingPoint(Vec3f& hitPoint, Vec3f& normal, Vec3f& outgoingPoint, Vec3f &outgoingNormal, float distance, float angle, BVH *bvh) const;
 
     __device__ bool IsLight() const;
 
@@ -50,10 +52,14 @@ public:
     Vec3f kd = Vec3f(0.f, 0.f, 0.f); // diffuse
     Vec3f ks = Vec3f(0.f, 0.f, 0.f); // specular
     
-    Vec3f F0 = Vec3f(0.f, 0.f, 0.f); // F0 for PBR
-    Vec3f basecolor = Vec3f(0.f, 0.f, 0.f);
+    Vec3f F0 = Vec3f(0.f, 0.f, 0.f); // F0 for fresnel
+    
+    Vec3f basecolor = Vec3f(0.f, 0.f, 0.f); // for pbr
     float roughness = 0.5f;
     float metallic = 0.0f;
+
+    Vec3f scatterDistance = Vec3f(0.f, 0.f, 0.f); // for subsurface scattering
+    float ior = 1.f;
 };
 
 void CreateMaterial(Material *hostMaterial, Material *deviceMaterial);

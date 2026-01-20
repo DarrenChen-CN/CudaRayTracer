@@ -32,7 +32,7 @@ struct RenderParam{
     int maxBounces;
 };
 
-inline struct RenderParam renderParam;
+inline RenderParam renderParam;
 
 class Scene
 {

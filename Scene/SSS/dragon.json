@@ -1,0 +1,98 @@
+{
+    "camera": {
+        "type": "pinhole",
+        "resolution": [
+            1024,
+            1024
+        ],
+        "fov": 39.3077,
+        "max_bounces": 4,
+        "rr": 0.6,
+        "spp": 4096,
+        "direction": [
+            0,
+            0,
+            -1
+        ]
+    },
+    "textures": [],
+    "materials": [
+        {
+            "name": "JadeOrientalGreen",
+            "type": "subsurface",
+            "basecolor": [
+                0.72,
+                0.91,
+                0.75
+            ],
+            "scatter_distance": [
+                5.65,
+                1.95,
+                1.45
+            ],
+            "ior": 1.61,
+            "roughness": 0.08,
+            "sss_scale": 1.0
+        },
+        {
+            "name": "WhiteTable",
+            "type": "pbr",
+            "basecolor": [
+                0.92,
+                0.92,
+                0.93
+            ],
+            "metallic": 1,
+            "roughness": 0.1
+        }
+    ],
+    "objects": [
+        {
+            "name": "dragon",
+            "path": "E://code/projects/CudaRayTracer/Model/Dragon/dragon.obj",
+            "translate": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0
+                }
+            ],
+            "material": "JadeOrientalGreen"
+        },
+        {
+            "name": "table",
+            "path": "E://code/projects/CudaRayTracer/Model/Table/table.obj",
+            "translate": [
+                0,
+                -0.28,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0
+                }
+            ],
+            "material": "WhiteTable"
+        }
+    ],
+    "lights": [
+        {
+            "name": "envLight",
+            "type": "env",
+            "path": "E://code/projects/CudaRayTracer/Image/HDR/brown_photostudio_02_4k.hdr"
+        }
+    ]
+}

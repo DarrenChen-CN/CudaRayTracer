@@ -115,9 +115,6 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
             segmentValidFlags[idx] = 0;
             return ;
         }else{
-            // segmentValidFlags[idx] = 0;
-            // segment.remainingBounces = 0; // Terminate the path if hitting light after first bounce
-            // return ;
             // MIS
             int lightID = meshData[info.meshID].lightID;
             // printf("Hit light ID: %d\n", lightID);
@@ -151,10 +148,9 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
             sampleLightRay.direction = dirWi;
             light -> SampleSolidAnglePDF(sampleLightRay, sampleLightPointInfo.position, sampleLightPointInfo.normal, pdfLight);
             pdfLight *= selectLightPDF;
-            // printf("pdflight: %f\n", pdfLight);
             float cosTheta = hitNormal.dot(dirWi);
             Vec3f dirBrdf = material.Evaluate(wo, hitNormal, dirWi);
-            Vec3f dirL = light -> emission.cwiseProduct(dirBrdf) * cosTheta / pdfLight;
+            Vec3f dirL = light -> Emission(dirWi).cwiseProduct(dirBrdf) * cosTheta / pdfLight;
 
             // MIS weight
             float pdfBrdf;
@@ -173,14 +169,80 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
     material.Sample(wo, hitNormal, indirWi, indirWiPdf, sampler, idx);
     brdf = material.Evaluate(wo, hitNormal, indirWi);
     segment.pdfBrdf = indirWiPdf;
-    float indirCosTheta = hitNormal.dot(indirWi);
-    if(!(indirWiPdf < eps || indirCosTheta < 0)){
-        segment.weight = segment.weight.cwiseProduct(brdf) * indirCosTheta / indirWiPdf;
+    segment.ray.origin = hitPoint; // Offset to avoid self-intersection
+    segment.ray.direction = indirWi;
+
+    // compute F in
+    Vec3f FIn;
+    material.Fresnel(wo, hitNormal, FIn);
+    float Ftransmit = 1 - FIn(0);
+    float rTransmission = sampler -> Get1D(idx);
+    // printf("Ftransmit: %f, rTransmission: %f\n", Ftransmit, rTransmission);
+    if(material.type != SUBSURFACE || rTransmission >= Ftransmit){
+        float indirCosTheta = hitNormal.dot(indirWi);
+        if(!(indirWiPdf < eps || indirCosTheta < 0)){
+            segment.weight = segment.weight.cwiseProduct(brdf) * indirCosTheta / indirWiPdf;
+        }else{
+            segment.remainingBounces = 0;
+            segmentValidFlags[idx] = 0;
+            return ;
+        }
     }else{
-        segment.remainingBounces = 0;
-        segmentValidFlags[idx] = 0;
-        return ;
+        // Subsurface scattering
+        // Sample a point inside the surface
+        Vec3f outgoingPoint, outgoingNormal, outgoingDir;
+        float spatialPdf, outgoingDirPdf;
+        material.SampleSpatialDiffusionProfile(wo, hitNormal, hitPoint, outgoingPoint, outgoingNormal, spatialPdf, sampler, idx, bvh);
+        // update weight for subsurface
+        segment.weight = segment.weight.cwiseProduct(material.basecolor);
+        
+        // NEE
+        float selectLightPDF;
+        Light *light = lightManager -> SampleLight(sampler, idx, selectLightPDF);
+        if(light != nullptr){
+            float sampleLightPointPDF;
+            TriangleSampleInfo sampleLightPointInfo;
+            light -> SamplePoint(triangles, sceneBounds, sampleLightPointInfo, sampleLightPointPDF, sampler, idx);
+            IntersectionInfo tempInfo;
+            tempInfo.hitPoint = outgoingPoint;
+            tempInfo.normal = outgoingNormal;
+            bool visible = light -> Visible(tempInfo, sampleLightPointInfo, bvh);
+            if(visible){
+                Vec3f dirWi = (sampleLightPointInfo.position - outgoingPoint).normalized();
+                Vec3f FNee;
+                material.Fresnel(dirWi, outgoingNormal, FNee);
+                float FtransmitOut = 1 - FNee(0);
+                float pdfLight;
+                Ray sampleLightRay;
+                sampleLightRay.origin = outgoingPoint;
+                sampleLightRay.direction = dirWi;
+                light -> SampleSolidAnglePDF(sampleLightRay, sampleLightPointInfo.position, sampleLightPointInfo.normal, pdfLight);
+                pdfLight *= selectLightPDF;
+                float cosTheta = outgoingNormal.dot(dirWi);
+                Vec3f dirBrdf = material.Evaluate(dirWi, outgoingNormal, dirWi);
+                Vec3f dirL = light -> Emission(dirWi).cwiseProduct(dirBrdf) * cosTheta / pdfLight;
+
+                // MIS weight
+                float pdfBrdf;
+                material.Pdf(wo, outgoingNormal, dirWi, pdfBrdf);
+                float lightMisWeight = MISWeight(pdfLight, pdfBrdf, 2);
+                segment.color += lightMisWeight * segment.weight.cwiseProduct(dirL) * FtransmitOut;
+            }
+        }
+
+        material.Sample(wo, outgoingNormal, outgoingDir, outgoingDirPdf, sampler, idx);
+        // compute F out
+        Vec3f FOut;
+        material.Fresnel(outgoingDir, outgoingNormal, FOut);
+        float FtransmitOut = 1 - FOut(0);
+
+        // update weight and ray
+        segment.ray.origin = outgoingPoint;
+        segment.ray.direction = outgoingDir;
+        segment.weight = segment.weight * FtransmitOut;
+        segment.pdfBrdf = outgoingDirPdf;
     }
+    
 
     // Russian roulette
     float p = sampler -> Get1D(idx);
@@ -191,11 +253,12 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
     }
 
     segment.weight /= rr;
-    segment.ray.origin = hitPoint; // Offset to avoid self-intersection
-    segment.ray.direction = indirWi;
+    
 
     segment.firstBounce = false; // After the first bounce
     segmentValidFlags[idx] = 1;
+
+    // printf("here\n");
 }
 
 __global__ void ShadingKernel(RenderSegment *segments, RenderParam renderParam, IntersectionInfo *intersectionInfo, int numSegments, float *accumulator, int *segmentValidFlags)

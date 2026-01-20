@@ -1,0 +1,273 @@
+{
+  "camera": {
+    "type": "pinhole",
+    "resolution": [
+      720,
+      720
+    ],
+    "fov": 39.3077,
+    "max_bounces": 4,
+    "rr": 0.6,
+    "spp": 4096,
+    "direction": [
+      0,
+      0,
+      -1
+    ]
+  },
+  "textures": [],
+  "materials": [
+    {
+      "name": "DiffuseWhite",
+      "type": "diffuse",
+      "basecolor": [
+        0.79,
+        0.76,
+        0.73
+      ]
+    },
+    {
+      "name": "JadeOrientalGreen",
+      "type": "subsurface",
+      "basecolor": [
+        0.72,
+        0.91,
+        0.75
+      ],
+      "scatter_distance": [
+        50.65,
+        50.95,
+        50.45
+      ],
+      "ior": 1.61,
+      "roughness": 0.05,
+      "sss_scale": 1.0
+    },
+    {
+      "name": "DiffuseYellow",
+      "type": "diffuse",
+      "basecolor": [
+        0.6,
+        0.8,
+        0.3
+      ]
+    },
+    {
+      "name": "LeftWall",
+      "type": "diffuse",
+      "basecolor": [
+        0.2,
+        0.84,
+        0.78
+      ]
+    },
+    {
+      "name": "RightWall",
+      "type": "diffuse",
+      "basecolor": [
+        0.7,
+        0.16,
+        0.8
+      ]
+    },
+    {
+      "name": "Light",
+      "type": "light",
+      "emission": [
+        34.0,
+        34.0,
+        34.0
+      ]
+    }
+  ],
+  "objects": [
+    {
+      "name": "1",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_1.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "Light"
+    },
+    {
+      "name": "2",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_2.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "DiffuseWhite"
+    },
+    {
+      "name": "3",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_3.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "DiffuseWhite"
+    },
+    {
+      "name": "4",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_4.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "DiffuseWhite"
+    },
+    {
+      "name": "5",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_5.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "LeftWall"
+    },
+    {
+      "name": "6",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_6.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "RightWall"
+    },
+    {
+      "name": "7",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_7.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "JadeOrientalGreen"
+    },
+    {
+      "name": "8",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_8.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "JadeOrientalGreen"
+    },
+    {
+      "name": "9",
+      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_9.obj",
+      "translate": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotate": [
+        {
+          "rotateX": 0
+        }
+      ],
+      "material": "JadeOrientalGreen"
+    }
+  ],
+  "lights": [
+    {
+      "name": "Light0",
+      "type": "area",
+      "lightMeshName": "1",
+      "material": "Light"
+    }
+  ]
+}
