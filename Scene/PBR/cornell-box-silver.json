@@ -262,6 +262,11 @@
       "type": "area",
       "lightMeshName": "1",
       "material": "Light"
+    },
+    {
+      "name": "Light1",
+      "type": "env",
+      "path": "E://code/projects/CudaRayTracer/Image/HDR/brown_photostudio_02_4k.hdr"
     }
   ]
 }

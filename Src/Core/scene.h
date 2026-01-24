@@ -30,6 +30,8 @@ struct RenderParam{
     float rr;
     int spp;
     int maxBounces;
+    int renderTargetMode = 0; // 0: color, 1: depth, 2: normal, 3: id
+    bool denoise = true;
 };
 
 inline RenderParam renderParam;

@@ -2,11 +2,11 @@
   "camera": {
     "type": "pinhole",
     "resolution": [
-      720,
-      720
+      1080,
+      1080
     ],
     "fov": 39.3077,
-    "max_bounces": 4,
+    "max_bounces": 2,
     "rr": 0.6,
     "spp": 4096,
     "direction": [
@@ -78,7 +78,7 @@
       "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_1.obj",
       "translate": [
         0,
-        0,
+        -0.05,
         0
       ],
       "scale": [

@@ -283,6 +283,12 @@ bool Scene::ParseMaterials(const json& materialsJson) {
     return true;
 }
 
+__global__ void PrintMeshdata(MeshData *meshes, int numMeshes){
+    for(int i = 0; i < numMeshes; i++){
+        printf("Mesh %d: name=%s, meshID=%d, materialID=%d, startTriangleID=%d, numTriangles=%d, area=%f\n", i, meshes[i].name.c_str(), meshes[i].meshID, meshes[i].materialID, meshes[i].startTriangleID, meshes[i].numTriangles, meshes[i].area);
+    }
+}
+
  bool Scene::ParseObjects(const json& objectJson) {
     if (!objectJson.is_array()) {
         std::cerr << "Error: 'objects' should be an array" << std::endl;
@@ -358,10 +364,11 @@ bool Scene::ParseMaterials(const json& materialsJson) {
         std::vector<Triangle> objectTris = LoadObject(path, i, transform, transformInv);
         mesh.startTriangleID = tris.size();
         mesh.numTriangles = objectTris.size();
-        for(auto& tri : objectTris)mesh.area += tri.area;
+        for(auto& tri : objectTris)mesh.area += tri.area, tri.meshID = mesh.meshID;
         mesh.transform = transform;
         mesh.transformInv = transformInv;
         hostMeshes[i] = mesh;
+        std::cout << "Loaded object: " << mesh.name << ", triangles: " << mesh.numTriangles << ", meshID: " << mesh.meshID << std::endl;
         tris.insert(tris.end(), objectTris.begin(), objectTris.end());
         CreateMeshData(&mesh, &meshes[i]);
     }
@@ -369,14 +376,6 @@ bool Scene::ParseMaterials(const json& materialsJson) {
     numTriangles = tris.size();
     cudaMalloc(&triangles, numTriangles * sizeof(Triangle));
     hostTriangles = new Triangle[numTriangles];
-    // for(int i = 0; i < numTriangles; i++){
-    //     printf("Triangle %d: v0=(%f,%f,%f), v1=(%f,%f,%f), v2=(%f,%f,%f), normal=(%f,%f,%f), area=%f, meshID=%d\n", i,
-    //            tris[i].v0.position(0), tris[i].v0.position(1), tris[i].v0.position(2),
-    //            tris[i].v1.position(0), tris[i].v1.position(1), tris[i].v1.position(2),
-    //            tris[i].v2.position(0), tris[i].v2.position(1), tris[i].v2.position(2),
-    //            tris[i].normal(0), tris[i].normal(1), tris[i].normal(2),
-    //            tris[i].area, tris[i].meshID);
-    // }
     memcpy(hostTriangles, tris.data(), numTriangles * sizeof(Triangle));
     for(int i = 0; i < numTriangles; i++){
         CreateTriangle(&hostTriangles[i], &triangles[i]);
@@ -490,7 +489,7 @@ __host__ void Scene::InitCameraParam(){
     cameraParam.maxBounces = this -> maxBounces;
     cameraParam.rr = this -> rr;
     cameraParam.spp = this -> spp;
-    cameraParam.distance = sceneBounds.DiagonalLength() * 0.5f / sin(AngleToRadian(cameraParam.fovy) / 2.f);
+    cameraParam.distance = sceneBounds.DiagonalLength() * 0.5f / sin(AngleToRadian(cameraParam.fovy) / 2.f) ;
     // cameraParam.theta = 90.f;
     // cameraParam.phi = 180.f;
     Vec3f dir = cameraParam.defaultDirection.normalized();

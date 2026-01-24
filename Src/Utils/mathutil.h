@@ -25,4 +25,10 @@ __host__ __device__ Mat4f RotateX(float angle);
 __host__ __device__ Mat4f RotateY(float angle);
 __host__ __device__ Mat4f RotateZ(float angle);
 
+// mvp matrix
+__host__ __device__ Mat4f Perspective(float fovy, float aspect, float near, float far);
+__host__ __device__ Mat4f LookAt(const Vec3f &eye, const Vec3f &center, const Vec3f &up);
+
+
 __device__ void CreateONB(const Vec3f& normal, Vec3f& tangent, Vec3f& bitangent);
+__host__ __device__ unsigned int PCGHash(unsigned int input);

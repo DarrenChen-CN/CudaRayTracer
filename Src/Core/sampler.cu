@@ -33,11 +33,7 @@ __global__ void InitKernel(curandState *state, int seed, int numPixels)
     if (idx < numPixels)
     {
         curand_init(seed, idx, 0, &state[idx]);
-        // if (idx == 0)
-        //     printf("state address: %p\n", &state[idx]); // Debugging output
-        // float u = curand_uniform(&state[idx]);                       // Initialize with a dummy call to ensure state is set up
-        // float v = curand_uniform(&state[idx]);                       // Initialize with a dummy call to ensure state is set up
-        // printf("InitKernel: idx = %d, u = %f, v = %f\n", idx, u, v); // Debugging output
+        
     }
 }
 

@@ -1,0 +1,374 @@
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\builtin_types.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\channel_descriptor.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\crt\common_functions.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\crt\cudacc_ext.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\crt\device_double_functions.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\crt\device_double_functions.hpp
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\crt\device_functions.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\crt\device_functions.hpp
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\crt\host_config.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\crt\host_defines.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\crt\math_functions.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\crt\math_functions.hpp
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\crt\sm_70_rt.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\crt\sm_80_rt.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\crt\sm_90_rt.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\cuda.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\cuda_device_runtime_api.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\cuda_fp16.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\cuda_fp16.hpp
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\cuda_runtime.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\cuda_runtime_api.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\curand.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\curand_discrete.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\curand_discrete2.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\curand_globals.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\curand_kernel.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\curand_lognormal.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\curand_mrg32k3a.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\curand_mtgp32.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\curand_mtgp32_kernel.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\curand_normal.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\curand_normal_static.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\curand_philox4x32_x.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\curand_poisson.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\curand_precalc.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\curand_uniform.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\device_atomic_functions.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\device_launch_parameters.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\device_types.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\driver_functions.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\driver_types.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\library_types.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\nv\detail\__preprocessor
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\nv\detail\__target_macros
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\nv\target
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\sm_20_atomic_functions.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\sm_20_intrinsics.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\sm_30_intrinsics.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\sm_32_atomic_functions.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\sm_32_intrinsics.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\sm_35_atomic_functions.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\sm_35_intrinsics.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\sm_60_atomic_functions.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\sm_61_intrinsics.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\surface_indirect_functions.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\surface_types.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\texture_indirect_functions.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\texture_types.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\vector_functions.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\vector_functions.hpp
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.3\include\vector_types.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\algorithm
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\ammintrin.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\array
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\atomic
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\cassert
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\cctype
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\cerrno
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\cfloat
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\climits
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\clocale
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\cmath
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\complex
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\concurrencysal.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\crtdefs.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\cstddef
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\cstdint
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\cstdio
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\cstdlib
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\cstring
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\ctime
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\cwchar
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\eh.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\emmintrin.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\exception
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\functional
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\immintrin.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\initializer_list
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\intrin.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\intrin0.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\intrin0.inl.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\ios
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\iosfwd
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\iostream
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\istream
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\iterator
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\limits
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\limits.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\memory
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\mmintrin.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\new
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\nmmintrin.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\ostream
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\pmmintrin.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\sal.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\setjmp.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\smmintrin.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\sstream
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\stdexcept
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\stdint.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\streambuf
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\string
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\system_error
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\tmmintrin.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\tuple
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\typeinfo
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\type_traits
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\use_ansi.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\utility
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\vadefs.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\vcruntime.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\vcruntime_exception.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\vcruntime_new.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\vcruntime_new_debug.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\vcruntime_string.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\vcruntime_typeinfo.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\wmmintrin.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\xatomic.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\xcall_once.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\xerrc.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\xfacet
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\xiosbase
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\xkeycheck.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\xlocale
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\xlocinfo
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\xlocnum
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\xmemory
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\xmmintrin.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\xstring
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\xthreads.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\xtimec.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\xtr1common
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\xutility
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\ymath.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\yvals.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\yvals_core.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\zmmintrin.h
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\__msvc_bit_utils.hpp
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\__msvc_iter_core.hpp
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\__msvc_sanitizer_annotate_container.hpp
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\__msvc_system_error_abi.hpp
+D:\ProgramFiles\Visual Studio\VC\Tools\MSVC\14.39.33519\include\__msvc_xlocinfo_types.hpp
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\assert.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_malloc.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_math.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_memcpy_s.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_memory.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_search.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_share.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_stdio_config.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_terminate.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_wconio.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_wctype.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_wdirect.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_wio.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_wprocess.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_wstdio.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_wstdlib.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_wstring.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\corecrt_wtime.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\crtdbg.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\ctype.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\errno.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\float.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\locale.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\malloc.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\math.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\memory.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\share.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\stddef.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\stdio.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\stdlib.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\string.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\sys\stat.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\sys\types.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\time.h
+D:\Windows Kits\10\Include\10.0.22621.0\ucrt\wchar.h
+E:\code\projects\CudaRayTracer\Src\Core\camera.h
+E:\code\projects\CudaRayTracer\Src\Core\global.h
+E:\code\projects\CudaRayTracer\Src\Core\ray.h
+E:\code\projects\CudaRayTracer\Src\Core\sampler.h
+E:\code\projects\CudaRayTracer\Src\Utils\mathutil.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\Cholesky
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\Core
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\Dense
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\Eigenvalues
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\Geometry
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\Householder
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\Jacobi
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\LU
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\QR
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Cholesky\LDLT.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Cholesky\LLT.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\arch\CUDA\Complex.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\arch\Default\BFloat16.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\arch\Default\ConjHelper.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\arch\Default\GenericPacketMathFunctions.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\arch\Default\GenericPacketMathFunctionsFwd.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\arch\Default\Half.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\arch\Default\Settings.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\arch\Default\TypeCasting.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\arch\GPU\MathFunctions.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\arch\GPU\PacketMath.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\arch\GPU\TypeCasting.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\ArithmeticSequence.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Array.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\ArrayBase.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\ArrayWrapper.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Assign.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\AssignEvaluator.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\BandMatrix.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Block.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\BooleanRedux.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\CommaInitializer.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\ConditionEstimator.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\CoreEvaluators.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\CoreIterators.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\CwiseBinaryOp.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\CwiseNullaryOp.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\CwiseTernaryOp.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\CwiseUnaryOp.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\CwiseUnaryView.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\DenseBase.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\DenseCoeffsBase.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\DenseStorage.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Diagonal.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\DiagonalMatrix.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\DiagonalProduct.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Dot.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\EigenBase.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\functors\AssignmentFunctors.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\functors\BinaryFunctors.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\functors\NullaryFunctors.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\functors\StlFunctors.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\functors\TernaryFunctors.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\functors\UnaryFunctors.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Fuzzy.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\GeneralProduct.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\GenericPacketMath.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\GlobalFunctions.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\IndexedView.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Inverse.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\IO.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Map.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\MapBase.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\MathFunctions.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\MathFunctionsImpl.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Matrix.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\MatrixBase.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\NestByValue.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\NoAlias.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\NumTraits.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\PartialReduxEvaluator.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\PermutationMatrix.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\PlainObjectBase.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Product.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\ProductEvaluators.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\products\GeneralBlockPanelKernel.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\products\GeneralMatrixMatrix.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\products\GeneralMatrixMatrixTriangular.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\products\GeneralMatrixVector.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\products\Parallelizer.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\products\SelfadjointMatrixMatrix.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\products\SelfadjointMatrixVector.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\products\SelfadjointProduct.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\products\SelfadjointRank2Update.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\products\TriangularMatrixMatrix.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\products\TriangularMatrixVector.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\products\TriangularSolverMatrix.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\products\TriangularSolverVector.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Random.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Redux.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Ref.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Replicate.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Reshaped.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\ReturnByValue.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Reverse.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Select.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\SelfAdjointView.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\SelfCwiseBinaryOp.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Solve.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\SolverBase.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\SolveTriangular.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\StableNorm.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\StlIterators.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Stride.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Swap.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Transpose.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Transpositions.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\TriangularMatrix.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\util\BlasUtil.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\util\ConfigureVectorization.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\util\Constants.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\util\DisableStupidWarnings.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\util\ForwardDeclarations.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\util\IndexedViewHelper.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\util\IntegralConstant.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\util\Macros.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\util\Memory.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\util\Meta.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\util\MKL_support.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\util\ReenableStupidWarnings.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\util\ReshapedHelper.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\util\StaticAssert.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\util\SymbolicIndex.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\util\XprHelper.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\VectorBlock.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\VectorwiseOp.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Core\Visitor.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Eigenvalues\ComplexEigenSolver.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Eigenvalues\ComplexSchur.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Eigenvalues\EigenSolver.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Eigenvalues\GeneralizedEigenSolver.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Eigenvalues\GeneralizedSelfAdjointEigenSolver.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Eigenvalues\HessenbergDecomposition.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Eigenvalues\MatrixBaseEigenvalues.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Eigenvalues\RealQZ.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Eigenvalues\RealSchur.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Eigenvalues\SelfAdjointEigenSolver.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Eigenvalues\Tridiagonalization.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Geometry\AlignedBox.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Geometry\AngleAxis.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Geometry\EulerAngles.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Geometry\Homogeneous.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Geometry\Hyperplane.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Geometry\OrthoMethods.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Geometry\ParametrizedLine.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Geometry\Quaternion.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Geometry\Rotation2D.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Geometry\RotationBase.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Geometry\Scaling.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Geometry\Transform.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Geometry\Translation.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Geometry\Umeyama.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Householder\BlockHouseholder.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Householder\Householder.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Householder\HouseholderSequence.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\Jacobi\Jacobi.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\LU\Determinant.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\LU\FullPivLU.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\LU\InverseImpl.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\LU\PartialPivLU.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\misc\Image.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\misc\Kernel.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\misc\RealSvd2x2.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\plugins\ArrayCwiseBinaryOps.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\plugins\ArrayCwiseUnaryOps.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\plugins\BlockMethods.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\plugins\CommonCwiseBinaryOps.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\plugins\CommonCwiseUnaryOps.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\plugins\IndexedViewMethods.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\plugins\MatrixCwiseBinaryOps.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\plugins\MatrixCwiseUnaryOps.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\plugins\ReshapedMethods.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\QR\ColPivHouseholderQR.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\QR\CompleteOrthogonalDecomposition.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\QR\FullPivHouseholderQR.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\QR\HouseholderQR.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\SVD\BDCSVD.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\SVD\JacobiSVD.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\SVD\SVDBase.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\src\SVD\UpperBidiagonalization.h
+E:\code\projects\CudaRayTracer\ThirdParty\Eigen3\include\eigen3\Eigen\SVD

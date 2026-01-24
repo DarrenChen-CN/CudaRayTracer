@@ -153,3 +153,41 @@ __device__ void CreateONB(const Vec3f& normal, Vec3f& tangent, Vec3f& bitangent)
     }
     bitangent = normal.cross(tangent).normalized();
 }
+
+__host__ __device__ unsigned int PCGHash(unsigned int input) {
+    unsigned int state = input * 747796405u + 2891336453u;
+    unsigned int word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+
+__host__ __device__ Mat4f Perspective(float fovy, float aspect, float near, float far){
+    float f = 1.0f / tan(AngleToRadian(fovy) / 2.0f);
+    Mat4f mat = Mat4f::Zero();
+    mat(0, 0) = f / aspect;
+    mat(1, 1) = f;
+    mat(2, 2) = (far + near) / (near - far);
+    mat(2, 3) = (2 * far * near) / (near - far);
+    mat(3, 2) = -1.0f;
+    return mat;
+}
+
+__host__ __device__ Mat4f LookAt(const Vec3f &eye, const Vec3f &center, const Vec3f &up){
+    Vec3f f = (center - eye).normalized();
+    Vec3f s = f.cross(up).normalized();
+    Vec3f u = s.cross(f);
+
+    Mat4f mat = Mat4f::Identity();
+    mat(0, 0) = s(0);
+    mat(0, 1) = s(1);
+    mat(0, 2) = s(2);
+    mat(1, 0) = u(0);
+    mat(1, 1) = u(1);
+    mat(1, 2) = u(2);
+    mat(2, 0) = -f(0);
+    mat(2, 1) = -f(1);
+    mat(2, 2) = -f(2);
+    mat(0, 3) = -s.dot(eye);
+    mat(1, 3) = -u.dot(eye);
+    mat(2, 3) = f.dot(eye);
+    return mat;
+}

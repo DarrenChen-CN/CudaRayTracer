@@ -1,6 +1,7 @@
 #include <ui.h>
 #include <camera.h>
 #include "mathutil.h"
+#include <scene.h>
 UI::UI(int width, int height) : width(width), height(height)
 {
     // Initialize GLFW
@@ -68,23 +69,22 @@ void UI::Init()
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    // render target PBO
     glGenBuffers(1, &PBO);
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, PBO);
     glBufferData(GL_PIXEL_UNPACK_BUFFER, width * height * 4, NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
+    // render target texture
     glGenTextures(1, &screenTexture);
     glBindTexture(GL_TEXTURE_2D, screenTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glBindTexture(GL_TEXTURE_2D, 0);
-    // shader = std::make_shared<Shader>("../../../Src/Shader/shader.vert", "../../../Src/Shader/shader.frag");
-    // shader = new Shader("E:\\code\\projects\\CPURayTracer\\Src\\Shader\\shader.vert", "E:\\code\\projects\\CPURayTracer\\Src\\Shader\\shader.frag");
-    // shader = std::make_shared<Shader>("..\\..\\Src\\Shader\\shader.vert", "..\\..\\Src\\Shader\\shader.frag");
+
     shader = new Shader(); // Initialize ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -120,6 +120,7 @@ void UI::RenderFrameBuffer()
     shader->Unuse();
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
+
 }
 void UI::GuiBegin(int spp, bool &framebufferReset)
 {
@@ -130,7 +131,7 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
     
     ImGui::Begin("CudaRayTracer GUI", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
     ImGui::SetWindowPos(ImVec2(0, 0));
-    ImGui::SetWindowSize(ImVec2(350, 270));
+    ImGui::SetWindowSize(ImVec2(350, 310));
 
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::Text("spp %d", spp);
@@ -163,6 +164,15 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
     ImGui::SliderFloat("Rotate Speed", &cameraParam.rotateSpeed, 0.1f, 1.0f, "%.2f deg/px");
     ImGui::SliderFloat("Zoom Speed", &cameraParam.zoomSpeed, 0.01f, 0.3f, "%.2f x Dist");
     ImGui::SliderFloat("move Speed", &cameraParam.moveSpeed, 0.01f, 0.3f, "%.2f x Dist");
+
+    ImGui::Separator();
+    ImGui::Text("render Target Mode");
+    const char* items[] = { "Color", "Depth", "Normal", "ID", "Position", "Albedo" };
+    static int item_current = 0;
+    if (ImGui::Combo("Mode", &item_current, items, IM_ARRAYSIZE(items))) {
+        renderParam.renderTargetMode = item_current;
+        framebufferReset = true;
+    }
     ImGui::End();
 
     ImGuiIO& io = ImGui::GetIO();
