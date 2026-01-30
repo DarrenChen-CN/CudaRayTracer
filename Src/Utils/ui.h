@@ -13,6 +13,7 @@
 class UI {
 public:
     UI(int width, int height);
+    UI(std::string filepath);
     ~UI();
     void Resize(int width, int height);
     void Init();

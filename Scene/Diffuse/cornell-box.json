@@ -48,27 +48,27 @@
       "name": "LeftWall",
       "type": "diffuse",
       "basecolor": [
-        0.2,
-        0.84,
-        0.78
+        0.63,
+        0.065,
+        0.05
       ]
     },
     {
       "name": "RightWall",
       "type": "diffuse",
       "basecolor": [
-        0.7,
-        0.16,
-        0.8
+        0.14,
+        0.45,
+        0.091
       ]
     },
     {
       "name": "Light",
       "type": "light",
       "emission": [
-        34.0,
-        34.0,
-        34.0
+        25.0,
+        25.0,
+        25.0
       ]
     }
   ],
@@ -78,7 +78,7 @@
       "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_1.obj",
       "translate": [
         0,
-        -0.05,
+        -1,
         0
       ],
       "scale": [

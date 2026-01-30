@@ -19,6 +19,7 @@ class Light;
 
 struct RenderParam{
     int width, height;
+    // Device pointers
     Triangle *triangles;
     MeshData *meshData;
     Material *materials;
@@ -32,6 +33,14 @@ struct RenderParam{
     int maxBounces;
     int renderTargetMode = 0; // 0: color, 1: depth, 2: normal, 3: id
     bool denoise = true;
+    int currentRenderBufferIndex = 0;
+    int currentGBufferIndex = 0;
+
+    // host pointers
+    Triangle *hostTriangles;
+    MeshData *hostMeshes;
+    Material *hostMaterials;
+    int numMeshes;
 };
 
 inline RenderParam renderParam;

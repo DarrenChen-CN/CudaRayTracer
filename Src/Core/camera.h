@@ -55,7 +55,7 @@ public:
     __device__ void GeneratingRay(int i, int j, Sampler *sampler, Ray *ray, CameraParam camParam);
     __device__ void PinholeGeneratingRay(int i, int j, Sampler *sampler, Ray *ray, CameraParam camParam);
 
-        __host__ static void ComputeCameraParam(CameraParam &camParam){
+    __host__ static void ComputeCameraParam(CameraParam &camParam){
         float theta = camParam.theta;
         float phi = camParam.phi;
         theta = AngleToRadian(theta);
@@ -64,10 +64,6 @@ public:
         float x = camParam.distance * sin(theta) * sin(phi);
         float y = camParam.distance * cos(theta);
         float z = camParam.distance * sin(theta) * cos(phi);
-
-        camParam.lastPosition = camParam.position;
-        camParam.lastLookat = camParam.lookat;
-        camParam.lastUp = camParam.up;
 
         camParam.position = camParam.target + Vec3f(x, y, z);
         camParam.lookat = camParam.target;

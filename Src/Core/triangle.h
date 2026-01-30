@@ -3,6 +3,7 @@
 #include "global.h"
 #include "material.h"
 #include "bounds.h"
+#include <glad/glad.h>
 
 struct IntersectionInfo
 {
@@ -18,7 +19,9 @@ struct IntersectionInfo
 struct RenderSegment
 {
     Ray ray;
-    Vec3f color;
+    // Vec3f color;
+    Vec3f directColor; // For direct lighting
+    Vec3f indirectColor; // For indirect lighting
     Vec3f weight;
     int index;
     int remainingBounces;
@@ -36,6 +39,7 @@ struct Vertex
     Vec3f position;
     Vec3f normal;
     Vec2f texCoord;
+    Vec3f barycentricCoords;
 };
 
 class Triangle
@@ -48,7 +52,7 @@ public:
     Bounds3D bounds;
     
     __host__ __device__ Triangle();
-    __host__ __device__ Triangle(Vertex& v0, Vertex& v1, Vertex& v2, int meshID);
+    __host__ __device__ Triangle(Vertex &v0, Vertex &v1, Vertex &v2, int meshID);
 
     __device__ bool IsIntersect(const Ray& ray, IntersectionInfo& info, float tMin = 0.f, float tMax = 1e8) const;
     __device__ void Sample(TriangleSampleInfo &info, Sampler *sampler, int idx) const;
@@ -67,6 +71,7 @@ struct MeshData{
     Mat4f transform; // Transformation matrix for the mesh
     Mat4f transformInv;
     int lightID = -1;
+    GLuint vao, vbo;
 };
 
 void CreateMeshData(MeshData *hostMesh, MeshData *deviceMesh);

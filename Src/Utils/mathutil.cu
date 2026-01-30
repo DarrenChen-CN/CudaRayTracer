@@ -171,6 +171,7 @@ __host__ __device__ Mat4f Perspective(float fovy, float aspect, float near, floa
     return mat;
 }
 
+
 __host__ __device__ Mat4f LookAt(const Vec3f &eye, const Vec3f &center, const Vec3f &up){
     Vec3f f = (center - eye).normalized();
     Vec3f s = f.cross(up).normalized();

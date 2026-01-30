@@ -2,8 +2,62 @@
 #include <camera.h>
 #include "mathutil.h"
 #include <scene.h>
+#include <fstream>
 UI::UI(int width, int height) : width(width), height(height)
 {
+    // Initialize GLFW
+    if (!glfwInit())
+    {
+        std::cout << "Failed to initialize GLFW" << std::endl;
+        return;
+    }
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    // Create a windowed mode window and its OpenGL context
+    window = glfwCreateWindow(width, height, "GPURayTracer", nullptr, nullptr);
+    if (!window)
+    {
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return;
+    } // Make the window's context current
+    glfwMakeContextCurrent(window);
+    // Initialize GLAD
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cout << "Failed to initialize GLAD" << std::endl;
+        return;
+    }
+    Init();
+    std::cout << "UI initialized successfully with width: " << width << ", height: " << height << std::endl;
+}
+
+UI::UI(std::string configPath)
+{
+    // parse camera parameters from config file
+    std::ifstream file(configPath);
+    if (!file.is_open()) {
+        std::cerr << "Error: Cannot open scene file " << configPath << std::endl;
+    }
+    try {
+        json sceneJson;
+        file >> sceneJson;
+        int w = 800, h = 600; // default values
+        if (sceneJson.contains("camera")) {
+            auto& cameraJson = sceneJson["camera"];
+            if (cameraJson.contains("resolution")) {
+                auto res = cameraJson["resolution"];
+                w = res[0];
+                h = res[1];
+            }
+        }
+        width = w;
+        height = h;
+
+    } catch (const json::exception& e) {
+        std::cerr << "JSON parsing error: " << e.what() << std::endl;
+    }
     // Initialize GLFW
     if (!glfwInit())
     {
@@ -150,13 +204,13 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
 
     }
     ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Theta: %.1f | Phi: %.1f", cameraParam.theta, cameraParam.phi);
-    if (ImGui::Button("Reset Camera", ImVec2(-1, 0))) { // -1 表示宽度填满
-        cameraParam.target = defaultCameraParam.target;
-        cameraParam.distance = defaultCameraParam.distance;
-        cameraParam.theta = defaultCameraParam.theta;
-        cameraParam.phi = defaultCameraParam.phi;
-        framebufferReset = true;
-    }
+    // if (ImGui::Button("Reset Camera", ImVec2(-1, 0))) { // -1 表示宽度填满
+    //     cameraParam.target = defaultCameraParam.target;
+    //     cameraParam.distance = defaultCameraParam.distance;
+    //     cameraParam.theta = defaultCameraParam.theta;
+    //     cameraParam.phi = defaultCameraParam.phi;
+    //     framebufferReset = true;
+    // }
     ImGui::Separator();
 
     // Input Sensitivity
@@ -167,7 +221,7 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
 
     ImGui::Separator();
     ImGui::Text("render Target Mode");
-    const char* items[] = { "Color", "Depth", "Normal", "ID", "Position", "Albedo" };
+    const char* items[] = { "Color", "Depth", "Normal", "ID", "Position"};
     static int item_current = 0;
     if (ImGui::Combo("Mode", &item_current, items, IM_ARRAYSIZE(items))) {
         renderParam.renderTargetMode = item_current;
@@ -178,6 +232,10 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
     ImGuiIO& io = ImGui::GetIO();
 
     if (!io.WantCaptureMouse) {
+
+        cameraParam.lastPosition = cameraParam.position;
+        cameraParam.lastLookat = cameraParam.lookat;
+        cameraParam.lastUp = cameraParam.up;
         
         if (ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
             ImVec2 delta = io.MouseDelta;
@@ -185,7 +243,7 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
             cameraParam.phi -= delta.x * cameraParam.rotateSpeed;
             cameraParam.theta -= delta.y * cameraParam.rotateSpeed;
 
-            // cameraParam.theta = Clamp(0.f, 180.0f, cameraParam.theta);
+            cameraParam.theta = Clamp(0.1f, 179.9f, cameraParam.theta);
             framebufferReset = true;
         }
 
@@ -195,7 +253,6 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
             cameraParam.target -= delta.x * cameraParam.du;
             cameraParam.target += delta.y * cameraParam.dv;
 
-            // cameraParam.theta = Clamp(0.f, 180.0f, cameraParam.theta);
             framebufferReset = true;
         }
 

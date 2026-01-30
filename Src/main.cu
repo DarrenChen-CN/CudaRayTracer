@@ -24,9 +24,10 @@ int main(int argc, char** argv)
         return -1;
     }
     std::string sceneFilePath = argv[1];
-
+    UI *ui = new UI(sceneFilePath);
+    printf("UI created\n");
     Scene *scene = new Scene(sceneFilePath);
-    UI *ui = new UI(scene -> width, scene -> height);
+    // UI *ui = new UI(scene -> width, scene -> height);
     Renderer *renderer = new Renderer(ui);
     renderer -> RenderLoop();
     return 0;

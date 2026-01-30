@@ -60,6 +60,13 @@ __host__ __device__ std::vector<Triangle> OBJLoader::LoadObject(int id, std::str
         };
         if (attrib.texcoords.size() > 0)
             v.texCoord = { attrib.texcoords[2 * i + 0], attrib.texcoords[2 * i + 1] };
+        if(i % 3==0) {
+            v.barycentricCoords = Vec3f(1.0f, 0.0f, 0.0f);
+        } else if(i %3==1) {
+            v.barycentricCoords = Vec3f(0.0f, 1.0f, 0.0f);
+        } else {
+            v.barycentricCoords = Vec3f(0.0f, 0.0f, 1.0f);
+        }
         vertices_.push_back(v);
     }
 

@@ -141,3 +141,19 @@ GLint Shader::GetFragmentShaderID() const
 {
     return fragmentShaderId;
 }
+
+void Shader::SetUniformMat4(const char* name, const float* matrix) const {
+    GLint location = glGetUniformLocation(id, name);
+    // printf("Setting uniform mat4 '%s' at location %d\n", name, location);
+    glUniformMatrix4fv(location, 1, GL_FALSE, matrix);
+}
+
+void Shader::SetUniformInt(const char* name, int value) const {
+    GLint location = glGetUniformLocation(id, name);
+    glUniform1i(location, value);
+}
+
+void Shader::SetUniformFloat(const char* name, float value) const {
+    GLint location = glGetUniformLocation(id, name);
+    glUniform1f(location, value);
+}

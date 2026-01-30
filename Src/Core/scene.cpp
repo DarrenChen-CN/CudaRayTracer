@@ -3,6 +3,9 @@
 #include "light.h"
 #include <new>
 #include <fstream>
+#include "GLFW/glfw3.h"
+#include <imgui_impl_opengl3_loader.h>
+#include <glad/glad.h>
 
 
 __host__ __device__ Scene::Scene(const std::string &sceneFilePath){
@@ -48,6 +51,7 @@ __host__ __device__ void Scene::BuildBVH(){
 }
 
 __host__ __device__ bool Scene::ParseSceneFile(const std::string& filename) {
+    std::cout << "Parsing scene file: " << filename << std::endl;
     std::ifstream file(filename);
     if (!file.is_open()) {
         std::cerr << "Error: Cannot open scene file " << filename << std::endl;
@@ -283,12 +287,6 @@ bool Scene::ParseMaterials(const json& materialsJson) {
     return true;
 }
 
-__global__ void PrintMeshdata(MeshData *meshes, int numMeshes){
-    for(int i = 0; i < numMeshes; i++){
-        printf("Mesh %d: name=%s, meshID=%d, materialID=%d, startTriangleID=%d, numTriangles=%d, area=%f\n", i, meshes[i].name.c_str(), meshes[i].meshID, meshes[i].materialID, meshes[i].startTriangleID, meshes[i].numTriangles, meshes[i].area);
-    }
-}
-
  bool Scene::ParseObjects(const json& objectJson) {
     if (!objectJson.is_array()) {
         std::cerr << "Error: 'objects' should be an array" << std::endl;
@@ -301,6 +299,9 @@ __global__ void PrintMeshdata(MeshData *meshes, int numMeshes){
     hostMeshes = new MeshData[objectSize];
 
     std::vector<Triangle> tris;
+    std::vector<Vertex> vertices;
+
+    printf("Vertex size: %llu, offset of Normal: %llu\n", sizeof(Vertex), offsetof(Vertex, normal));
 
     for(int i = 0; i < numMeshes; i ++){
         MeshData mesh;
@@ -362,12 +363,36 @@ __global__ void PrintMeshdata(MeshData *meshes, int numMeshes){
         transform = translate * rotate * scale;
         Mat4f transformInv = transform.inverse();
         std::vector<Triangle> objectTris = LoadObject(path, i, transform, transformInv);
+        std::vector<Vertex> vertices;
         mesh.startTriangleID = tris.size();
         mesh.numTriangles = objectTris.size();
-        for(auto& tri : objectTris)mesh.area += tri.area, tri.meshID = mesh.meshID;
+        for(auto& tri : objectTris)mesh.area += tri.area, tri.meshID = mesh.meshID, vertices.push_back(tri.v0), vertices.push_back(tri.v1), vertices.push_back(tri.v2);
         mesh.transform = transform;
         mesh.transformInv = transformInv;
         hostMeshes[i] = mesh;
+
+        // std::cout << "Creating OpenGL buffers for mesh: " << mesh.name << std::endl;
+        // std::cout << "Number of vertices: " << vertices.size() << std::endl;
+
+        // OpenGL buffers
+        // for(int i = 0; i < vertices.size(); i++){
+        //     std::cout << "Vertex " << i << ": Position(" << vertices[i].position(0) << ", " << vertices[i].position(1) << ", " << vertices[i].position(2) << "), Normal(" << vertices[i].normal(0) << ", " << vertices[i].normal(1) << ", " << vertices[i].normal(2) << "), TexCoord(" << vertices[i].texCoord(0) << ", " << vertices[i].texCoord(1) << ")" << std::endl;
+        // }
+        glGenVertexArrays(1, &hostMeshes[i].vao);
+        glGenBuffers(1, &hostMeshes[i].vbo);
+        glBindVertexArray(hostMeshes[i].vao);
+        glBindBuffer(GL_ARRAY_BUFFER, hostMeshes[i].vbo);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, barycentricCoords));
+        glBindVertexArray(0);
+
         std::cout << "Loaded object: " << mesh.name << ", triangles: " << mesh.numTriangles << ", meshID: " << mesh.meshID << std::endl;
         tris.insert(tris.end(), objectTris.begin(), objectTris.end());
         CreateMeshData(&mesh, &meshes[i]);
@@ -489,7 +514,7 @@ __host__ void Scene::InitCameraParam(){
     cameraParam.maxBounces = this -> maxBounces;
     cameraParam.rr = this -> rr;
     cameraParam.spp = this -> spp;
-    cameraParam.distance = sceneBounds.DiagonalLength() * 0.5f / sin(AngleToRadian(cameraParam.fovy) / 2.f) ;
+    cameraParam.distance = sceneBounds.DiagonalLength() * 0.5f / sin(AngleToRadian(cameraParam.fovy) / 2.f)  * 0.6f;
     // cameraParam.theta = 90.f;
     // cameraParam.phi = 180.f;
     Vec3f dir = cameraParam.defaultDirection.normalized();
@@ -501,6 +526,9 @@ __host__ void Scene::InitCameraParam(){
     cameraParam.zoomSpeed = 0.1f;
     cameraParam.moveSpeed = 0.1f;
     Camera::ComputeCameraParam(cameraParam);
+    cameraParam.lastLookat = cameraParam.lookat;
+    cameraParam.lastPosition = cameraParam.position;
+    cameraParam.lastUp = cameraParam.up; // avoid nan
     std::cout << "Camera initialized. Position: (" << cameraParam.position(0) << ", " << cameraParam.position(1) << ", " << cameraParam.position(2) << ")" << std::endl;
 }
 
@@ -518,4 +546,10 @@ __host__ void Scene::SetRenderParam(){
     renderParam.rr = rr;
     renderParam.maxBounces = maxBounces;
     renderParam.spp = spp;
+    renderParam.currentRenderBufferIndex = 0;
+    renderParam.currentGBufferIndex = 0;
+    renderParam.hostTriangles = hostTriangles;
+    renderParam.hostMeshes = hostMeshes;
+    renderParam.hostMaterials = hostMaterials;
+    renderParam.numMeshes = numMeshes;
 }

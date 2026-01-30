@@ -1,6 +1,6 @@
 #include "triangle.h"
 
-__host__ __device__ Triangle::Triangle(Vertex& v0, Vertex& v1, Vertex& v2, int meshID)
+__host__ __device__ Triangle::Triangle(Vertex &v0, Vertex &v1, Vertex &v2, int meshID)
     : v0(v0), v1(v1), v2(v2), meshID(meshID)
 {
     // Compute the normal and area of the triangle
