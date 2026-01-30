@@ -51,7 +51,6 @@ public:
     __host__ __device__ Scene(const std::string &sceneFilePath);
     __host__ __device__ ~Scene();
 
-    // __host__ void LoadScene(const std::string &sceneFilePath);
     __host__ __device__ std::vector<Triangle> LoadObject(const std::string &objectFilePath, int id, Mat4f transform = Mat4f::Identity(), Mat4f transformInv = Mat4f::Identity());
     __host__ __device__ void BuildBVH();
     __host__ __device__ bool ParseSceneFile(const std::string &sceneFilePath);
@@ -67,19 +66,32 @@ public:
     Material *materials;
     int numMaterials;
     std::unordered_map<std::string, int> materialMap;
+
+    Texture *hostTextures;
+    Texture *textures;
+    int numTextures;
+    std::unordered_map<std::string, int> textureMap;
+
     Triangle *triangles;
     Triangle *hostTriangles;
     int numTriangles;
+
     LightManager *hostLightManager;
     LightManager *lightManager;
-    BVH *bvh;
+
     MeshData *hostMeshes;
     MeshData *meshes;
     std::unordered_map<std::string, int> meshMap;
     int numMeshes;
-    Camera *camera;
+
     Sampler *sampler;
+    Sampler *hostSampler;
+
+    Camera *camera;
+    
     Bounds3D sceneBounds;
+    BVH *bvh;
+    BVH *hostBVH;
 
     int width, height;
     float fovy;

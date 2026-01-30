@@ -3,9 +3,12 @@
 #include "mathutil.h"
 #include <scene.h>
 #include <fstream>
+#include <cuda_runtime.h>
+#include <cuda_gl_interop.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 UI::UI(int width, int height) : width(width), height(height)
 {
-    // Initialize GLFW
     if (!glfwInit())
     {
         std::cout << "Failed to initialize GLFW" << std::endl;
@@ -14,16 +17,14 @@ UI::UI(int width, int height) : width(width), height(height)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    // Create a windowed mode window and its OpenGL context
     window = glfwCreateWindow(width, height, "GPURayTracer", nullptr, nullptr);
     if (!window)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return;
-    } // Make the window's context current
+    }
     glfwMakeContextCurrent(window);
-    // Initialize GLAD
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
@@ -35,7 +36,6 @@ UI::UI(int width, int height) : width(width), height(height)
 
 UI::UI(std::string configPath)
 {
-    // parse camera parameters from config file
     std::ifstream file(configPath);
     if (!file.is_open()) {
         std::cerr << "Error: Cannot open scene file " << configPath << std::endl;
@@ -58,7 +58,6 @@ UI::UI(std::string configPath)
     } catch (const json::exception& e) {
         std::cerr << "JSON parsing error: " << e.what() << std::endl;
     }
-    // Initialize GLFW
     if (!glfwInit())
     {
         std::cout << "Failed to initialize GLFW" << std::endl;
@@ -67,16 +66,14 @@ UI::UI(std::string configPath)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    // Create a windowed mode window and its OpenGL context
     window = glfwCreateWindow(width, height, "GPURayTracer", nullptr, nullptr);
     if (!window)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return;
-    } // Make the window's context current
+    }
     glfwMakeContextCurrent(window);
-    // Initialize GLAD
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
@@ -89,6 +86,10 @@ UI::UI(std::string configPath)
 UI::~UI()
 {
     CHECK_CUDA_ERROR(cudaGraphicsUnmapResources(1, &cudaPBOResource, 0));
+    delete shader;
+    glDeleteBuffers(1, &PBO);
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteTextures(1, &screenTexture);
 }
 
 void UI::Resize(int newWidth, int newHeight)
@@ -148,7 +149,17 @@ void UI::Init()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
-    defaultCameraParam = cameraParam; // Store the default camera parameters for reset
+    // defaultCameraParam = cameraParam; // Store the default camera parameters for reset
+
+    CHECK_CUDA_ERROR(cudaSetDevice(0));
+    CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&cudaPBOResource, PBO, cudaGraphicsMapFlagsWriteDiscard));
+    CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &cudaPBOResource, 0));
+    CHECK_CUDA_ERROR(cudaGraphicsResourceGetMappedPointer((void**)&pixels, &numBytes, cudaPBOResource));
+    if (numBytes != width * height * sizeof(uchar4))
+    {
+        std::cout << "Mapped PBO size does not match expected size: " << width * height * sizeof(uchar4) << " bytes";
+        return;
+    }
 
     std::cout << "ImGui initialized successfully." << std::endl;
 }
@@ -161,16 +172,11 @@ void UI::UpdateTexture()
 }
 void UI::RenderFrameBuffer()
 {
-    // Clear the screen
     glClear(GL_COLOR_BUFFER_BIT);
-    // Use the shader program
     shader->Use();
-    // Bind the VAO and draw the screen quad
     glBindVertexArray(VAO);
-    // Bind the texture
     glBindTexture(GL_TEXTURE_2D, screenTexture);
     glDrawArrays(GL_TRIANGLES, 0, 6);
-    // Unbind everything
     shader->Unuse();
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
@@ -178,14 +184,13 @@ void UI::RenderFrameBuffer()
 }
 void UI::GuiBegin(int spp, bool &framebufferReset)
 {
-    // Start a new ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
     
     ImGui::Begin("CudaRayTracer GUI", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
     ImGui::SetWindowPos(ImVec2(0, 0));
-    ImGui::SetWindowSize(ImVec2(350, 310));
+    ImGui::SetWindowSize(ImVec2(350, 300));
 
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::Text("spp %d", spp);
@@ -267,9 +272,18 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
 
     }
 
-    // Update camera parameters
+    // screenshot
+    if(ImGui::IsKeyPressed(ImGuiKey_P)) {
+        time_t now = time(0);
+        tm *ltm = localtime(&now);
+        char filename[64];
+        sprintf(filename, "../../output/screenshot_%04d%02d%02d_%02d%02d%02d.png",
+                1900 + ltm->tm_year, 1 + ltm->tm_mon, ltm->tm_mday,
+                ltm->tm_hour, ltm->tm_min, ltm->tm_sec);
+        SaveScreenshot(std::string(filename));
+    }
+
     Camera::ComputeCameraParam(cameraParam);
-    // framebufferReset = true;
 }
 
 
@@ -278,4 +292,17 @@ void UI::GuiEnd()
     // Render ImGui
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void UI::SaveScreenshot(const std::string &filename)
+{
+    std::vector<unsigned char> hostPixels(width * height * 4);
+    cudaMemcpy(hostPixels.data(), pixels, width * height * 4, cudaMemcpyDeviceToHost);
+    // stbi_flip_vertically_on_write(1); 
+    
+    if (stbi_write_png(filename.c_str(), width, height, 4, hostPixels.data(), width * 4)) {
+        std::cout << "Screenshot saved to " << filename << std::endl;
+    } else {
+        std::cerr << "Failed to save screenshot." << std::endl;
+    }
 }

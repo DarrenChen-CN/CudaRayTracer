@@ -64,7 +64,7 @@ struct DenoiseParam{
     float2 *indirectMoments;
     int *historyLength;
     int maxHistoryLength = 24;
-    float sigmaLight = 30.f;
+    float sigmaLight = 10.f;
     float sigmaNormal = 128.f;
     float sigmaDepth = 1.f;
 };
@@ -189,7 +189,6 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
         }else{
             // MIS
             int lightID = meshData[info.meshID].lightID;
-            // printf("Hit light ID: %d\n", lightID);
             Light *light = lightManager -> GetLight(lightID);
             float pdfLight;
             light -> SampleSolidAnglePDF(segment.ray, info.hitPoint, info.normal, pdfLight);
@@ -197,8 +196,6 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
             // MIS weight
             float brdfMisWeight = MISWeight(segment.pdfBrdf, pdfLight, 2);
             segment.indirectColor += segment.weight.cwiseProduct(material.ke) * brdfMisWeight;
-            // Vec3f temp = segment.weight.cwiseProduct(material.ke) * brdfMisWeight;
-            // printf("temp light: %f, %f, %f\n", temp(0), temp(1), temp(2));
         }
     }
 
@@ -211,7 +208,6 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
         light -> SamplePoint(triangles, sceneBounds, sampleLightPointInfo, sampleLightPointPDF, sampler, idx);
         
         bool visible = light -> Visible(info, sampleLightPointInfo, bvh);
-        // bool visible = true;
         if(visible){
             Vec3f dirWi = (sampleLightPointInfo.position - hitPoint).normalized();
             float pdfLight;
@@ -221,14 +217,13 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
             light -> SampleSolidAnglePDF(sampleLightRay, sampleLightPointInfo.position, sampleLightPointInfo.normal, pdfLight);
             pdfLight *= selectLightPDF;
             float cosTheta = hitNormal.dot(dirWi);
-            Vec3f dirBrdf = material.Evaluate(wo, hitNormal, dirWi);
+            Vec3f dirBrdf = material.Evaluate(wo, hitNormal, dirWi, uv);
             Vec3f dirL = light -> Emission(dirWi).cwiseProduct(dirBrdf) * cosTheta / pdfLight;
 
             // MIS weight
             float pdfBrdf;
-            material.Pdf(wo, hitNormal, dirWi, pdfBrdf);
+            material.Pdf(wo, hitNormal, dirWi, pdfBrdf, uv);
             float lightMisWeight = MISWeight(pdfLight, pdfBrdf, 2);
-            // segment.color += lightMisWeight * segment.weight.cwiseProduct(dirL);
             if(segment.firstBounce){
                 segment.directColor += lightMisWeight * segment.weight.cwiseProduct(dirL);
             }else{
@@ -243,10 +238,10 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
     // indir
     Vec3f indirWi;
     float indirWiPdf;
-    material.Sample(wo, hitNormal, indirWi, indirWiPdf, sampler, idx);
-    brdf = material.Evaluate(wo, hitNormal, indirWi);
+    material.Sample(wo, hitNormal, indirWi, indirWiPdf, sampler, idx, uv);
+    brdf = material.Evaluate(wo, hitNormal, indirWi, uv);
     segment.pdfBrdf = indirWiPdf;
-    segment.ray.origin = hitPoint; // Offset to avoid self-intersection
+    segment.ray.origin = hitPoint;
     segment.ray.direction = indirWi;
 
     // compute F in
@@ -254,7 +249,6 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
     material.Fresnel(wo, hitNormal, FIn);
     float Ftransmit = 1 - FIn(0);
     float rTransmission = sampler -> Get1D(idx);
-    // printf("Ftransmit: %f, rTransmission: %f\n", Ftransmit, rTransmission);
     if(material.type != SUBSURFACE || rTransmission >= Ftransmit){
         float indirCosTheta = hitNormal.dot(indirWi);
         if(!(indirWiPdf < eps || indirCosTheta < 0)){
@@ -296,14 +290,13 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
                 light -> SampleSolidAnglePDF(sampleLightRay, sampleLightPointInfo.position, sampleLightPointInfo.normal, pdfLight);
                 pdfLight *= selectLightPDF;
                 float cosTheta = outgoingNormal.dot(dirWi);
-                Vec3f dirBrdf = material.Evaluate(dirWi, outgoingNormal, dirWi);
+                Vec3f dirBrdf = material.Evaluate(dirWi, outgoingNormal, dirWi, uv);
                 Vec3f dirL = light -> Emission(dirWi).cwiseProduct(dirBrdf) * cosTheta / pdfLight;
 
                 // MIS weight
                 float pdfBrdf;
-                material.Pdf(wo, outgoingNormal, dirWi, pdfBrdf);
+                material.Pdf(wo, outgoingNormal, dirWi, pdfBrdf, uv);
                 float lightMisWeight = MISWeight(pdfLight, pdfBrdf, 2);
-                // segment.color += lightMisWeight * segment.weight.cwiseProduct(dirL) * FtransmitOut;
                 if(segment.firstBounce){
                     segment.directColor += lightMisWeight * segment.weight.cwiseProduct(dirL) * FtransmitOut;
                 }else{
@@ -312,7 +305,7 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
             }
         }
 
-        material.Sample(wo, outgoingNormal, outgoingDir, outgoingDirPdf, sampler, idx);
+        material.Sample(wo, outgoingNormal, outgoingDir, outgoingDirPdf, sampler, idx, uv);
         // compute F out
         Vec3f FOut;
         material.Fresnel(outgoingDir, outgoingNormal, FOut);
@@ -329,7 +322,7 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
     // Russian roulette
     float p = sampler -> Get1D(idx);
     if(p > rr){
-        segment.remainingBounces = 0; // Terminate the path
+        segment.remainingBounces = 0;
         segmentValidFlags[idx] = 0;
         return ;
     }
@@ -337,10 +330,9 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
     segment.weight /= rr;
     
 
-    segment.firstBounce = false; // After the first bounce
+    segment.firstBounce = false;
     segmentValidFlags[idx] = 1;
 
-    // printf("here\n");
 }
 
 __global__ void ShadingKernel(RenderSegment *segments, RenderParam renderParam, IntersectionInfo *intersectionInfo, int numSegments, RenderBuffer renderBuffer, int *segmentValidFlags)
@@ -374,23 +366,12 @@ __device__ bool GetLastFramePos(int index, CameraParam cameraParam, RenderParam 
     float depth = motionDepth.z;
     float dz = motionDepth.w;
 
-    // if(position.norm() < eps && meshID == 0){
-    //     pixelPos = Vec2f(-1, -1);
-    //     return false;
-    // }
-
     Vec2i motionVec = Vec2i((motionDepth.x) * renderParam.width * 0.5f, (motionDepth.y) * renderParam.height * 0.5f);
     Vec2f currentPixelPos = Vec2f(index % width, index / width);
     pixelPos = Vec2f(currentPixelPos(0) - motionVec(0), currentPixelPos(1) - motionVec(1));
-
-    // WorldToLastFramePos(position, cameraParam, renderParam, pixelPos);
-
     if(pixelPos(0) < 0 || pixelPos(0) >= renderParam.width || pixelPos(1) < 0 || pixelPos(1) >= renderParam.height){
-        // printf("index: %d, last frame uv: %f, %f\n", index, pixelPos(0), pixelPos(1));
         return false;
     }
-    // printf("index: %d, current pixel: %f, %f, motion: %f, %f, last frame uv: %f, %f\n", index, currentPixelPos(0), currentPixelPos(1), motionVec(0), motionVec(1), pixelPos(0), pixelPos(1));
-    // printf("index: %d, last frame uv: %f, %f, last frame index: %d\n", index, pixelPos(0), pixelPos(1), pixelPos(1) * renderParam.width + pixelPos(0));
 
     // get last frame gbuffer info
     float4 lastPositionTriID = tex2D<float4>(lastGBuffer.cudaTexObjPositionTriID, pixelPos(0), pixelPos(1));
@@ -403,10 +384,10 @@ __device__ bool GetLastFramePos(int index, CameraParam cameraParam, RenderParam 
     Vec3f lastPosition = Vec3f(lastPositionTriID.x, lastPositionTriID.y, lastPositionTriID.z);
 
     float dotNormal = normal.dot(lastNormal);
-    // float depthDiff = fabs(depth - lastDepth);
     float depthDiff = fabs(position(2) - lastPosition(2));
-    float normalThreshold = 0.9; // cos(18 degrees)
-    float depthThreshold = dz * 6.f + (0.01f * depth); // 1% of depth
+    float normalThreshold = 0.9;
+    float pixelDistance = sqrtf(motionVec(0) * motionVec(0) + motionVec(1) * motionVec(1));
+    float depthThreshold = dz * (pixelDistance + 1.f) + 0.1 * depth;
 
     // if(meshID != lastMeshID){
     //     // sample 3 * 3 neighborhood
@@ -431,9 +412,6 @@ __device__ bool GetLastFramePos(int index, CameraParam cameraParam, RenderParam 
     // }
 
     if(meshID != lastMeshID || dotNormal < normalThreshold || depthDiff > depthThreshold){
-        // printf("current pixel: %f, %f, last pixel: %f, %f, motion vector: %f, %f\n", currentPixelPos(0), currentPixelPos(1), pixelPos(0), pixelPos(1), motionVec(0), motionVec(1));
-        // printf("index: %d, meshID: %d, lastMeshID: %d, dotNormal: %f, depthDiff: %f\n", index, meshID, lastMeshID, dotNormal, depthDiff);
-        // printf("index: %d, current normal: %f, %f, %f, last normal: %f, %f, %f\n", index, normal(0), normal(1), normal(2), lastNormal(0), lastNormal(1), lastNormal(2));
         return false;
     }
 
@@ -458,23 +436,6 @@ __device__ void TemporalDenoising(int index, RenderBuffer currentBuffer, RenderB
     Vec2f pixelPos;
     bool valid = GetLastFramePos(index, cameraParam, renderParam, currentBuffer, lastBuffer, currentGBuffer, lastGBuffer, pixelPos);
 
-    // if(valid){
-    //     currentBuffer.directLightingBuffer[index * 4 + 0] = 1;
-    //     currentBuffer.directLightingBuffer[index * 4 + 1] = 0;
-    //     currentBuffer.directLightingBuffer[index * 4 + 2] = 0;
-    //     currentBuffer.indirectLightingBuffer[index * 4 + 0] = 0;
-    //     currentBuffer.indirectLightingBuffer[index * 4 + 1] = 0;
-    //     currentBuffer.indirectLightingBuffer[index * 4 + 2] = 0;
-    // }else{
-    //     currentBuffer.directLightingBuffer[index * 4 + 0] = 0;
-    //     currentBuffer.directLightingBuffer[index * 4 + 1] = 1;
-    //     currentBuffer.directLightingBuffer[index * 4 + 2] = 0;
-    //     currentBuffer.indirectLightingBuffer[index * 4 + 0] = 0;
-    //     currentBuffer.indirectLightingBuffer[index * 4 + 1] = 0;
-    //     currentBuffer.indirectLightingBuffer[index * 4 + 2] = 0;
-    // }
-    // return;
-
     denoiseParam.historyLength[index] = valid ? min(denoiseParam.historyLength[index], denoiseParam.maxHistoryLength) : 1;
     float alpha = valid ? 1.f / denoiseParam.historyLength[index] : 1.0f;
     int lastFrameIndex = valid ? (int)pixelPos(1) * renderParam.width + (int)pixelPos(0) : index;
@@ -487,11 +448,6 @@ __device__ void TemporalDenoising(int index, RenderBuffer currentBuffer, RenderB
     currentBuffer.indirectLightingBuffer[index * 4 + 2] = alpha * currentBuffer.indirectLightingBuffer[index * 4 + 2] + (1 - alpha) * lastBuffer.indirectLightingBuffer[lastFrameIndex * 4 + 2];
 
     // update moments
-    // float2 &moment = denoiseParam.moments[index];
-    // float2 lastMoment = valid ? denoiseParam.moments[lastFrameIndex] : make_float2(0.f, 0.f);
-    // float luminance = Luminance(Vec3f(currentBuffer.directLightingBuffer[index * 3 + 0] + currentBuffer.indirectLightingBuffer[index * 3 + 0], currentBuffer.directLightingBuffer[index * 3 + 1] + currentBuffer.indirectLightingBuffer[index * 3 + 1], currentBuffer.directLightingBuffer[index * 3 + 2] + currentBuffer.indirectLightingBuffer[index * 3 + 2]));
-    // moment.x = alpha * luminance + (1 - alpha) * lastMoment.x;
-    // moment.y = alpha * luminance * luminance + (1 - alpha) * lastMoment.y;
     float2 &directMoment = denoiseParam.directMoments[index];
     float2 &indirectMoment = denoiseParam.indirectMoments[index];
     float2 lastDirectMoment = valid ? denoiseParam.directMoments[lastFrameIndex] : make_float2(0.f, 0.f);
@@ -503,12 +459,10 @@ __device__ void TemporalDenoising(int index, RenderBuffer currentBuffer, RenderB
     indirectMoment.x = alpha * indirectLuminance + (1 - alpha) * lastIndirectMoment.x;
     indirectMoment.y = alpha * indirectLuminance * indirectLuminance + (1 - alpha) * lastIndirectMoment.y;
     if(valid){
-        // denoiseParam.variance[index] = fmaxf(1e-6f, moment.y - moment.x * moment.x);
         currentBuffer.directLightingBuffer[index * 4 + 3] = directMoment.y - directMoment.x * directMoment.x;
         currentBuffer.indirectLightingBuffer[index * 4 + 3] = indirectMoment.y - indirectMoment.x * indirectMoment.x;
         denoiseParam.historyLength[index] = min(denoiseParam.historyLength[index] + 1, denoiseParam.maxHistoryLength);
     }else{
-        // denoiseParam.variance[index] = 1.f;
         // denoiseParam.historyLength[index] = 1;
         currentBuffer.directLightingBuffer[index * 4 + 3] = 1.f;
         currentBuffer.indirectLightingBuffer[index * 4 + 3] = 1.f;
@@ -538,26 +492,18 @@ __global__ void ComputeVarianceKernel(DenoiseParam denoiseParam, RenderParam ren
     int idx = j * width + i;
     int historyLength = denoiseParam.historyLength[idx];
     if(historyLength < 4){
-        // 获取中心像素信息
         Vec3f centerDirectColor = Vec3f(currentBuffer.directLightingBuffer[4 * idx + 0], currentBuffer.directLightingBuffer[4 * idx + 1], currentBuffer.directLightingBuffer[4 * idx + 2]);
         Vec3f centerIndirectColor = Vec3f(currentBuffer.indirectLightingBuffer[4 * idx + 0], currentBuffer.indirectLightingBuffer[4 * idx + 1], currentBuffer.indirectLightingBuffer[4 * idx + 2]);
-        
         float centerDirectLuminance = Luminance(centerDirectColor);
         float centerIndirectLuminance = Luminance(centerIndirectColor);
-
         float4 motionDepth = tex2D<float4>(gBuffer.cudaTexObjMotionDepth, i, j);
         float centerDepth = motionDepth.z;
         float dz = fmaxf(motionDepth.w, 1e-4f);
-
         ushort4 normalMatID = tex2D<ushort4>(gBuffer.cudaTexObjNormalMatID, i, j);
         Vec3f centerNormal = Vec3f(normalMatID.x / 65535.0f * 2.f - 1.f, normalMatID.y / 65535.0f * 2.f - 1.f, normalMatID.z / 65535.0f * 2.f - 1.f).normalized();
-
         float centerDirectVariance = fmaxf(0.0f, currentBuffer.directLightingBuffer[idx * 4 + 3]);
         float centerIndirectVariance = fmaxf(0.0f, currentBuffer.indirectLightingBuffer[idx * 4 + 3]);
-        float stdDevDirect = sqrtf(centerDirectVariance) + 1e-3f; 
-        float stdDevIndirect = sqrtf(centerIndirectVariance) + 1e-3f; 
 
-        // 累加器
         Vec3f finalDirectColor(0.f, 0.f, 0.f);
         Vec3f finalIndirectColor(0.f, 0.f, 0.f);
         Vec2f finalDirectMoments(0.f, 0.f);
@@ -574,7 +520,6 @@ __global__ void ComputeVarianceKernel(DenoiseParam denoiseParam, RenderParam ren
                 int nj = j + kj;
                 if(ni >= 0 && ni < width && nj >= 0 && nj < height){
                     int nidx = nj * width + ni;
-                    // 获取邻居像素信息
                     Vec3f nDirectColor = Vec3f(currentBuffer.directLightingBuffer[4 * nidx + 0], currentBuffer.directLightingBuffer[4 * nidx + 1], currentBuffer.directLightingBuffer[4 * nidx + 2]);
                     Vec3f nIndirectColor = Vec3f(currentBuffer.indirectLightingBuffer[4 * nidx + 0], currentBuffer.indirectLightingBuffer[4 * nidx + 1], currentBuffer.indirectLightingBuffer[4 * nidx + 2]);
                     float4 nMotionDepth = tex2D<float4>(gBuffer.cudaTexObjMotionDepth, ni, nj);
@@ -586,13 +531,11 @@ __global__ void ComputeVarianceKernel(DenoiseParam denoiseParam, RenderParam ren
                     Vec2f nDirectMoment = Vec2f(denoiseParam.directMoments[nidx].x, denoiseParam.directMoments[nidx].y);
                     Vec2f nIndirectMoment = Vec2f(denoiseParam.indirectMoments[nidx].x, denoiseParam.indirectMoments[nidx].y);
 
-                    // 计算权重
                     float dist = sqrtf(float(ki * ki + kj * kj));
                     float wz = -fabsf(centerDepth - nDepth) / (sigmaDepth * dist + 1e-4f);
-                    // printf("idx: %d, nidx: %d, centerDepth: %f, nDepth: %f, dz: %f, wz: %f\n", idx, nidx, centerDepth, nDepth, dz, wz);
                     float wn = powf(fmaxf(0.f, centerNormal.dot(nNormal)), denoiseParam.sigmaNormal);
-                    float wDirect = -fabsf(centerDirectLuminance - nDirectLuminance) / (denoiseParam.sigmaLight);
-                    float wIndirect = -fabsf(centerIndirectLuminance - nIndirectLuminance) / (denoiseParam.sigmaLight);
+                    float wDirect = -fabsf(centerDirectLuminance - nDirectLuminance) / (denoiseParam.sigmaLight / sqrtf(centerDirectLuminance));
+                    float wIndirect = -fabsf(centerIndirectLuminance - nIndirectLuminance) / (denoiseParam.sigmaLight / sqrtf(centerIndirectLuminance));
 
                     float dWeight = expf(wz + wDirect) * wn;
                     float iWeight = expf(wz + wIndirect) * wn;
@@ -606,7 +549,6 @@ __global__ void ComputeVarianceKernel(DenoiseParam denoiseParam, RenderParam ren
                 }
             }
         }
-        // 归一化
         totalDirectWeight = fmaxf(totalDirectWeight, 1e-6f);
         totalIndirectWeight = fmaxf(totalIndirectWeight, 1e-6f);
         finalDirectMoments /= totalDirectWeight;
@@ -627,10 +569,7 @@ __global__ void ComputeVarianceKernel(DenoiseParam denoiseParam, RenderParam ren
         lastRenderBuffer.indirectLightingBuffer[idx * 4 + 1] = finalIndirectColor(1);
         lastRenderBuffer.indirectLightingBuffer[idx * 4 + 2] = finalIndirectColor(2);
         lastRenderBuffer.indirectLightingBuffer[idx * 4 + 3] = indirectVariance;
-        
-        // printf("idx: %d, history length: %d, direct variance: %f, indirect variance: %f, finalDirectMoments: %f, %f, finalIndirectMoments: %f, %f\n", idx, historyLength, directVariance, indirectVariance, finalDirectMoments(0), finalDirectMoments(1), finalIndirectMoments(0), finalIndirectMoments(1));
     }else{
-        // 直接复制
         lastRenderBuffer.directLightingBuffer[idx * 4 + 0] = currentBuffer.directLightingBuffer[idx * 4 + 0];
         lastRenderBuffer.directLightingBuffer[idx * 4 + 1] = currentBuffer.directLightingBuffer[idx * 4 + 1];
         lastRenderBuffer.directLightingBuffer[idx * 4 + 2] = currentBuffer.directLightingBuffer[idx * 4 + 2];
@@ -664,14 +603,11 @@ __global__ void AtrousKernel(DenoiseParam denoiseParam, CameraParam cameraParam,
     ushort4 normalMatID = tex2D<ushort4>(gBuffer.cudaTexObjNormalMatID, i, j);
     Vec3f centerNormal = Vec3f(normalMatID.x / 65535.0f * 2.f - 1.f, normalMatID.y / 65535.0f * 2.f - 1.f, normalMatID.z / 65535.0f * 2.f - 1.f).normalized();
 
-    // 核心：使用预滤波后的方差，并增加保护项
     float centerDirectVariance = fmaxf(0.0f, renderBuffer.directLightingBuffer[idx * 4 + 3]);
     float centerIndirectVariance = fmaxf(0.0f, renderBuffer.indirectLightingBuffer[idx * 4 + 3]);
-    // printf("idx: %d, direct variance: %f, indirect variance: %f\n", idx, centerDirectVariance, centerIndirectVariance);
     float stdDevDirect = sqrtf(centerDirectVariance) + 1e-3f; 
     float stdDevIndirect = sqrtf(centerIndirectVariance) + 1e-3f; 
 
-    // 累加器
     Vec3f finalDirectColor(0.f, 0.f, 0.f);
     Vec3f finalIndirectColor(0.f, 0.f, 0.f);
     float totalDirectWeight = 0.f;
@@ -681,7 +617,7 @@ __global__ void AtrousKernel(DenoiseParam denoiseParam, CameraParam cameraParam,
 
     float sigmaDepth = 1000 * fmaxf(dz, 1e-4f);
     
-    const float kernelWeights[3] = {3.f / 8.f, 1.f / 4.f, 1.f / 16.f}; // 5x5 kernel weights
+    const float kernelWeights[3] = {3.f / 8.f, 1.f / 4.f, 1.f / 16.f};
 
     for(int kj = -2; kj <= 2; kj++){
         for(int ki = -2; ki <= 2; ki++){
@@ -690,8 +626,6 @@ __global__ void AtrousKernel(DenoiseParam denoiseParam, CameraParam cameraParam,
 
             if(ni >= 0 && ni < width && nj >= 0 && nj < height){
                 int nidx = nj * width + ni;
-
-                // 采样邻域信息
                 float4 nMotionDepth = tex2D<float4>(gBuffer.cudaTexObjMotionDepth, ni, nj);
                 float nDepth = nMotionDepth.z;
 
@@ -708,8 +642,8 @@ __global__ void AtrousKernel(DenoiseParam denoiseParam, CameraParam cameraParam,
                 float wn = powf(fmaxf(0.f, centerNormal.dot(nNormal)), denoiseParam.sigmaNormal);
                 float directLuminance = Luminance(nDirectColor);
                 float indirectLuminance = Luminance(nIndirectColor);
-                float wDirect = -fabsf(centerDirectLuminance - directLuminance) / (denoiseParam.sigmaLight * stdDevDirect);
-                float wIndirect = -fabsf(centerIndirectLuminance - indirectLuminance) / (denoiseParam.sigmaLight * stdDevIndirect);
+                float wDirect = -fabsf(centerDirectLuminance - directLuminance) / (denoiseParam.sigmaLight * stdDevDirect / sqrtf(centerDirectLuminance));
+                float wIndirect = -fabsf(centerIndirectLuminance - indirectLuminance) / (denoiseParam.sigmaLight * stdDevIndirect / sqrtf(centerIndirectLuminance));
 
                 float kWeight = kernelWeights[abs(ki)] * kernelWeights[abs(kj)];
                 float dWeight = expf(wz + wDirect) * wn * kWeight;
@@ -725,13 +659,11 @@ __global__ void AtrousKernel(DenoiseParam denoiseParam, CameraParam cameraParam,
         }
     }
 
-    // 5. 归一化输出
     if(totalDirectWeight > 1e-6f) {
         lastRenderBuffer.directLightingBuffer[4 * idx + 0] = finalDirectColor(0) / totalDirectWeight;
         lastRenderBuffer.directLightingBuffer[4 * idx + 1] = finalDirectColor(1) / totalDirectWeight;
         lastRenderBuffer.directLightingBuffer[4 * idx + 2] = finalDirectColor(2) / totalDirectWeight;
         float newVariance = directVariance / (totalDirectWeight * totalDirectWeight);
-        // printf("idx: %d, direct variance before: %f, after: %f\n", idx, centerDirectVariance, newVariance);
         lastRenderBuffer.directLightingBuffer[4 * idx + 3] = directVariance / (totalDirectWeight * totalDirectWeight);
     } else {
         lastRenderBuffer.directLightingBuffer[4 * idx + 0] = centerDirectColor(0);
@@ -829,7 +761,6 @@ __global__ void GatherKernel(uchar4 *pixels, RenderBuffer renderBuffer, GBuffer 
     }
 }
 
-
 int StreamCompaction(int* rayValid, int* rayIndex, int numRays)
 {
 	if (numRays == 0) return 0;
@@ -900,19 +831,18 @@ public:
         GBufferInit();
     }
     __host__ ~Renderer(){
-
+        CudaFree();
+        GBufferFree();
     }
 
     __host__ void RenderLoop(){
         bool firstFrame = true;
         while (!glfwWindowShouldClose(ui -> window))
         {
-            // LOG_DEBUG("here");
             RenderBuffer renderBuffer = renderParam.currentRenderBufferIndex == 0 ? renderBuffers[0] : renderBuffers[1];
             RenderBuffer lastRenderBuffer = renderParam.currentRenderBufferIndex == 0 ? renderBuffers[1] : renderBuffers[0];
             GBuffer gBuffer = renderParam.currentGBufferIndex == 0 ? gBuffers[0] : gBuffers[1];
             GBuffer lastGBuffer = renderParam.currentGBufferIndex == 0 ? gBuffers[1] : gBuffers[0];
-            // Start the Dear ImGui frame
             ui -> GuiBegin(sppCounter, framebufferReset);
             if(framebufferReset){
                 sppCounter = 0;
@@ -939,10 +869,9 @@ public:
 
                 for(int i = 0; i < maxBounces; i ++){
                     if(numSegments <= 0) break;
-                    cudaMemset(intersections, 0, sizeof(IntersectionInfo) * numSegments); // Clear intersection info for next bounce
-                    cudaMemset(intersectionsBuffer, 0, sizeof(IntersectionInfo) * numSegments); // Clear intersection info for next bounce
-                    cudaMemset(materialIDs, 0, sizeof(int) * numSegments); // Clear material IDs buffer
-                    // printf("Bounce %d, Active segments: %d\n", i, numSegments);
+                    cudaMemset(intersections, 0, sizeof(IntersectionInfo) * numSegments);
+                    cudaMemset(intersectionsBuffer, 0, sizeof(IntersectionInfo) * numSegments);
+                    cudaMemset(materialIDs, 0, sizeof(int) * numSegments);
 
                     // 2. Intersection
                     renderGridSize = dim3((numSegments + renderBlockSize.x - 1) / renderBlockSize.x);
@@ -952,7 +881,6 @@ public:
 
                     // stream compaction
                     numSegments = StreamCompaction(segmentValidFlags, segmentPos, numSegments);
-                    // printf("After intersection stream compaction, Active segments: %d\n", numSegments);
                     if(numSegments <= 0)break;
 
                     // todo: sort intersections by materialID to improve memory coherence
@@ -966,11 +894,9 @@ public:
 
                     // stream compaction
                     numSegments = StreamCompaction(segmentValidFlags, segmentPos, numSegments);
-                    // printf("After shading stream compaction, Active segments: %d\n", numSegments);
                 }
                 
                 // map cuda resource
-                // GBuffer &gBuffer = gBuffers[renderParam.currentBufferIndex];
                 cudaGraphicsMapResources(1, &gBuffer.cudaPositionTriIDResource, 0);
                 cudaGraphicsMapResources(1, &gBuffer.cudaNormalMatIDResource, 0);
                 cudaGraphicsMapResources(1, &gBuffer.cudaBaryMeshIDResource, 0);
@@ -994,7 +920,7 @@ public:
                     ComputeVarianceKernel<<<denoiseGridSize, denoiseBlockSize>>>(denoiseParam, renderParam, current, last, gBuffer, varianceKernelSize);
                     renderParam.currentRenderBufferIndex = 1 - renderParam.currentRenderBufferIndex;
 
-                    // // Remove albedo
+                    // Remove albedo
                     // RemoveAlbedoKernel<<<denoiseGridSize, denoiseBlockSize>>>(renderParam, renderBuffer);
 
                     // Atrous denoising
@@ -1010,8 +936,6 @@ public:
                         }
                     }
 
-                    // // std::swap(renderBuffer.framebuffer, renderBuffer.lastFrame);
-
                     // // Restore albedo
                     // RestoreAlbedoKernel<<<denoiseGridSize, denoiseBlockSize>>>(renderParam, renderBuffer);
                 }
@@ -1019,7 +943,6 @@ public:
                 // 5. Gather
                 RenderBuffer currentRenderBuffer = renderParam.currentRenderBufferIndex == 0 ? renderBuffers[0] : renderBuffers[1];
                 gatherGridSize = dim3((width + gatherBlockSize.x - 1) / gatherBlockSize.x, (height + gatherBlockSize.y - 1) / gatherBlockSize.y);
-                // GatherKernel<<<gatherGridSize, gatherBlockSize>>>(pixels, renderBuffer, gBuffer, sppCounter, renderParam, cameraParam, denoiseParam);
                 GatherKernel<<<gatherGridSize, gatherBlockSize>>>(pixels, currentRenderBuffer, gBuffer, sppCounter, renderParam, cameraParam, denoiseParam);
                 cudaDeviceSynchronize();
 
@@ -1032,25 +955,18 @@ public:
                 cudaGraphicsUnmapResources(1, &lastGBuffer.cudaNormalMatIDResource, 0);
                 cudaGraphicsUnmapResources(1, &lastGBuffer.cudaBaryMeshIDResource, 0);
                 cudaGraphicsUnmapResources(1, &lastGBuffer.cudaMotionDepthResource, 0);
-                // if(renderParam.denoise){
-                //     // save last id buffer
-                //     CHECK_CUDA_ERROR(cudaMemcpy(renderBuffer.lastIdBuffer, renderBuffer.idBuffer, sizeof(int) * width * height, cudaMemcpyDeviceToDevice));
-                //     cudaDeviceSynchronize();
-                // }
                 ui -> shader -> Unuse();
                 firstFrame = false;
                 // Rendering pipeline end
             }
             
             
-            cudaDeviceSynchronize(); // Render the frame buffer
+            cudaDeviceSynchronize();
             ui -> UpdateTexture();
             ui -> RenderFrameBuffer();
             ui -> GuiEnd();
-
-            // Swap buffers and poll events
             glfwSwapBuffers(ui -> window);
-            glfwSwapInterval(0); // Disable VSync
+            glfwSwapInterval(0);
             glfwPollEvents();
 
             if(renderParam.denoise){
@@ -1081,16 +997,6 @@ public:
         cudaMalloc(&materialSortIndices, sizeof(int) * width * height);
         cudaMemset(materialSortIndices, 0, sizeof(int) * width * height);
 
-        CHECK_CUDA_ERROR(cudaSetDevice(0)); // Set the device to use
-        CHECK_CUDA_ERROR(cudaGraphicsGLRegisterBuffer(&ui -> cudaPBOResource, ui -> PBO, cudaGraphicsMapFlagsWriteDiscard));
-        CHECK_CUDA_ERROR(cudaGraphicsMapResources(1, &ui -> cudaPBOResource, 0));
-        CHECK_CUDA_ERROR(cudaGraphicsResourceGetMappedPointer((void**)&pixels, &numBytes, ui -> cudaPBOResource));
-        if (numBytes != width * height * sizeof(uchar4))
-        {
-            std::cout << "Mapped PBO size does not match expected size: " << width * height * sizeof(uchar4) << " bytes";
-            return;
-        }
-
         // Initialize render buffer
         cudaMalloc(&renderBuffers[0].directLightingBuffer, sizeof(float) * 4 * width * height);
         cudaMalloc(&renderBuffers[0].indirectLightingBuffer, sizeof(float) * 4 * width * height);
@@ -1098,12 +1004,12 @@ public:
         cudaMalloc(&renderBuffers[1].indirectLightingBuffer, sizeof(float) * 4 * width * height);
 
         // Initialize denoise buffer
-        // cudaMalloc(&denoiseParam.moments, sizeof(float2) * width * height);
-        // cudaMalloc(&denoiseParam.variance, sizeof(float) * width * height);
         cudaMalloc(&denoiseParam.directMoments, sizeof(float2) * width * height);
         cudaMalloc(&denoiseParam.indirectMoments, sizeof(float2) * width * height);
         cudaMalloc(&denoiseParam.historyLength, sizeof(int) * width * height);
 
+        this -> pixels = ui -> pixels;
+        this -> numBytes = ui -> numBytes;
         std::cout << "Render buffer initialized." << std::endl;
     }
     void GBufferInit(){
@@ -1156,7 +1062,7 @@ public:
             glDrawBuffers(4, drawBuffers);
 
             if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-                std::cerr << "GBuffer FBO not complete!" << std::endl;
+                std::cout << "GBuffer FBO not complete!" << std::endl;
 
             glBindFramebuffer(GL_FRAMEBUFFER, 0); // Unbind framebuffer
 
@@ -1192,13 +1098,12 @@ public:
             cudaGraphicsSubResourceGetMappedArray(&motionDepthArray, gBuffer.cudaMotionDepthResource, 0, 0);
             gBuffer.cudaTexObjMotionDepth = CreateTextureObject(motionDepthArray, addressMode, cudaFilterModeLinear, readMode);
             cudaGraphicsUnmapResources(1, &gBuffer.cudaMotionDepthResource, 0);
-
-            // printf("G-Buffer %d CUDA texture objects created. positionTriID: %lu, normalMatID: %lu, baryMeshID: %lu, motionDepth: %lu\n", i, (unsigned long)gBuffer.cudaTexObjPositionTriID, (unsigned long)gBuffer.cudaTexObjNormalMatID, (unsigned long)gBuffer.cudaTexObjBaryMeshID, (unsigned long)gBuffer.cudaTexObjMotionDepth);
         }
         gBufferShader = new Shader("../../Shader/gbuffer.vs", "../../Shader/gbuffer.fs");
         std::cout << "G-Buffer initialized." << std::endl;
     }
     void RenderGBuffer(RenderParam renderParam, CameraParam cameraParam){
+
         int currentGBufferIndex = renderParam.currentGBufferIndex;
         glBindFramebuffer(GL_FRAMEBUFFER, gBuffers[currentGBufferIndex].fbo);
         glViewport(0, 0, renderParam.width, renderParam.height);
@@ -1244,18 +1149,44 @@ public:
             MeshData* mesh = &renderParam.hostMeshes[i];
             // Set material ID uniform
             gBufferShader -> SetUniformInt("uMaterialID", mesh -> materialID);
-            gBufferShader -> SetUniformInt("uMeshID", mesh -> meshID + 1); // meshID + 1 to distinguish from background(0)
+            gBufferShader -> SetUniformInt("uMeshID", mesh -> meshID + 1); 
             
             // Bind VAO and draw
             glBindVertexArray(mesh->vao);
             glDrawArrays(GL_TRIANGLES, 0, mesh->numTriangles * 3);
             glBindVertexArray(0);
-
-            // std::cout << "Rendered G-Buffer for mesh " << i + 1 << "/" << renderParam.numMeshes << ", triangles: " << mesh->numTriangles << " VAO: "<< mesh->vao << std::endl;
         }
         gBufferShader -> Unuse();
         glDisable(GL_DEPTH_TEST);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+    void CudaFree(){
+        cudaFree(renderSegments);
+        cudaFree(renderSegmentsBuffer);
+        cudaFree(intersections);
+        cudaFree(intersectionsBuffer);
+        cudaFree(segmentValidFlags);
+        cudaFree(segmentPos);
+        cudaFree(materialIDs);
+        cudaFree(materialSortIndices);
+        cudaFree(renderBuffers[0].directLightingBuffer);
+        cudaFree(renderBuffers[0].indirectLightingBuffer);
+        cudaFree(renderBuffers[1].directLightingBuffer);
+        cudaFree(renderBuffers[1].indirectLightingBuffer);
+        cudaFree(denoiseParam.directMoments);
+        cudaFree(denoiseParam.indirectMoments);
+        cudaFree(denoiseParam.historyLength);
+    }
+    void GBufferFree(){
+        for(int i = 0; i < 2; i++){
+            glDeleteTextures(1, &gBuffers[i].texPositionTriID);
+            glDeleteTextures(1, &gBuffers[i].texNormalMatID);
+            glDeleteTextures(1, &gBuffers[i].texBaryMeshID);
+            glDeleteTextures(1, &gBuffers[i].texMotionDepth);
+            glDeleteRenderbuffers(1, &gBuffers[i].depthBuffer);
+            glDeleteFramebuffers(1, &gBuffers[i].fbo);
+        }
+        delete gBufferShader;
     }
     UI *ui;
     uchar4* pixels;

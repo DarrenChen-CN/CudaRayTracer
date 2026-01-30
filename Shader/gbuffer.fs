@@ -30,7 +30,6 @@ void main(){
 
     // motion vector + linear depth + dZ
     vec2 curNDC = vCurClipPos.xy / vCurClipPos.w;
-    // curNDC = vec2(int(curNDC.x), int(curNDC.y)); // avoid sub-pixel motion
     vec2 prevNDC = vPrevClipPos.xy / vPrevClipPos.w;
     vec2 motionVector = curNDC - prevNDC;
     float zNDC = gl_FragCoord.z * 2.0 - 1.0;

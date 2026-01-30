@@ -13,7 +13,7 @@ __host__  BVH::BVH(Triangle *triangles, int numTriangles, int maxTrianglesInLeaf
         return;
     }
     std::cout << "Building BVH with " << numTriangles << " triangles..." << std::endl;
-    orderedTriangles = new Triangle[numTriangles];
+    hostOrderedTriangles = new Triangle[numTriangles];
     this -> numTriangles = numTriangles;
     this -> maxTrianglesInLeaf = maxTrianglesInLeaf;
     this -> method = method;
@@ -22,20 +22,28 @@ __host__  BVH::BVH(Triangle *triangles, int numTriangles, int maxTrianglesInLeaf
     printf("Total BVH nodes created: %d\n", totalNode);
     printf("orderedTriangles size: %zu\n", tempOrderedTriangles.size());
     printf("max depth of BVH tree: %d\n", maxDepth);
-    memcpy(orderedTriangles, tempOrderedTriangles.data(), sizeof(Triangle) * numTriangles);
+    memcpy(hostOrderedTriangles, tempOrderedTriangles.data(), sizeof(Triangle) * numTriangles);
 
     // Flatten the BVH tree
     std::cout << "Flattening BVH tree with total nodes: " << totalNode << " ..." << std::endl;
-    linearNodes = new LinearBVHNode[totalNode];
+    hostLinearNodes = new LinearBVHNode[totalNode];
     int offset = 0;
     FlattenBVHTree(this -> root, &offset);
+}
+
+__host__ BVH::~BVH(){
+    // std::cout << "Destroying BVH..." << std::endl;
+    ReleaseBVHNode(root);
+    delete[] hostOrderedTriangles;
+    delete[] hostLinearNodes;
+    cudaFree(orderedTriangles);
+    cudaFree(linearNodes);
+    std::cout << "BVH destroyed." << std::endl;
 }
 
 __host__  __device__ BVHNode* BVH::RecursiveBuild(Triangle *triangles, int start, int end, std::vector<Triangle>& orderedTriangles, int depth)
 {
     
-    // std::cout << "Building BVH node at depth " << depth << " with triangles from " << start << " to " << end << std::endl;
-    // Create a node
     BVHNode *node = new BVHNode();
     totalNode++;
     if (!node)
@@ -54,51 +62,42 @@ __host__  __device__ BVHNode* BVH::RecursiveBuild(Triangle *triangles, int start
         
     }
 
-    // Compute Bounding box
     Bounds3D bounds;
     for (int i = start; i < end; i++)
     {
         bounds = bounds.Expand(triangles[i].bounds);
     }
 
-    node->bounds = bounds; // Set the bounding box of the node
+    node->bounds = bounds;
 
     if (end - start <= maxTrianglesInLeaf)
     {
-        // printf("Creating leaf node at depth %d with triangle index %d\n", depth, start);
         node->isLeaf = true;
         node->left = nullptr;
         node->right = nullptr;
-        node->offset = orderedTriangles.size();       // Set the offset for the triangle in the ordered list
-        node->numTriangles = end - start;                        // Set the number of triangles in the leaf node
+        node->offset = orderedTriangles.size();
+        node->numTriangles = end - start;
         for (int i = start; i < end; i++) {
-            orderedTriangles.push_back(triangles[i]); // Add the triangle to the ordered list
+            orderedTriangles.push_back(triangles[i]);
         }
         return node;
     }
 
-    // Not leaf node
     node->isLeaf = false;
-
-    // Find split axis
     int splitAxis = bounds.MaxExtent();
-    // printf("Splitting node at depth %d along axis %d with %d triangles\n", depth, splitAxis, end - start);
 
     // Split
     if (method == EqualCounts)
     {
-        // Using std::nth_element to find the median
         int mid = (start + end) / 2;
         std::nth_element(&triangles[start], &triangles[mid], &triangles[end - 1] + 1, [splitAxis](const Triangle a, const Triangle b)
             { return a.GetBounds().Center()(splitAxis) < b.GetBounds().Center()(splitAxis); });
-        // Build left and right children
         node->left = RecursiveBuild(triangles, start, mid, orderedTriangles, depth + 1);
         node->right = RecursiveBuild(triangles, mid, end, orderedTriangles, depth + 1);
     }
     else if (method == SAH)
     {
         // Surface Area Heuristic (SAH) split
-        // todo...
         Bounds3D centroidBounds;
         for (int i = start; i < end; i++){
             Vec3f center = triangles[i].bounds.Center();
@@ -111,7 +110,6 @@ __host__  __device__ BVHNode* BVH::RecursiveBuild(Triangle *triangles, int start
         for (int i = start; i < end; i++){
             Vec3f center = triangles[i].bounds.Center();
             int b = BUCKET_COUNT * centroidBounds.Offset(center)(splitAxis);
-            // printf("Triangle %d center: (%f, %f, %f), offset: %f, bucket: %d\n", i, center(0), center(1), center(2), bounds.Offset(center)(splitAxis), b);
             if (b == BUCKET_COUNT) b = BUCKET_COUNT - 1;
             buckets[b].count++;
             buckets[b].bounds = buckets[b].bounds.Expand(triangles[i].bounds);
@@ -139,7 +137,6 @@ __host__  __device__ BVHNode* BVH::RecursiveBuild(Triangle *triangles, int start
         float minCost = FLOATMAX;
         int bestSplit = -1;
         for (int i = 1; i < nSplit; i++){
-            // Compute the cost of splitting at this bucket
             if(costs[i] < minCost){
                 minCost = costs[i];
                 bestSplit = i;
@@ -148,22 +145,17 @@ __host__  __device__ BVHNode* BVH::RecursiveBuild(Triangle *triangles, int start
 
         float triangleCost = end - start;
         if(minCost > triangleCost && (end - start) <= maxTrianglesInLeaf){
-            // Create leaf node
-            // printf("Creating leaf node at depth %d with triangle index %d\n", depth, start);
             node->isLeaf = true;
             node->left = nullptr;
             node->right = nullptr;
-            node->offset = orderedTriangles.size();       // Set the offset for the triangle in the ordered list
-            node->numTriangles = end - start;                        // Set the number of triangles in the leaf node
+            node->offset = orderedTriangles.size();  
+            node->numTriangles = end - start;      
             for (int i = start; i < end; i++) {
                 orderedTriangles.push_back(triangles[i]);
-                    // Add the triangle to the ordered list
             }
             return node;
         }
 
-        // Partition the triangles based on the best split
-        // printf("Best split at bucket %d with cost %f\n", bestSplit, minCost);
         auto midPtr = std::partition(&triangles[start], &triangles[end - 1] + 1, [=](const Triangle& tri) mutable
             {
                 Vec3f center = tri.GetBounds().Center();
@@ -172,7 +164,6 @@ __host__  __device__ BVHNode* BVH::RecursiveBuild(Triangle *triangles, int start
                 return b <= bestSplit;
             });
         int mid = midPtr - &triangles[0];
-        // printf("mid: %d\n", mid);
         node->left = RecursiveBuild(triangles, start, mid, orderedTriangles, depth + 1);
         node->right = RecursiveBuild(triangles, mid, end, orderedTriangles, depth + 1);
     }
@@ -183,28 +174,31 @@ __host__  __device__ BVHNode* BVH::RecursiveBuild(Triangle *triangles, int start
     return node;
 }
 
+__host__ void BVH::ReleaseBVHNode(BVHNode* node)
+{
+    if (!node)
+        return;
+    ReleaseBVHNode(node->left);
+    ReleaseBVHNode(node->right);
+    delete node;
+}
+
 int BVH::FlattenBVHTree(BVHNode* node, int* offset)
 {
-    // printf("Flattening node at depth %d, current offset: %d\n", node->depth, *offset);
     // Flatten the BVH tree into a linear array
     if (!node)
         return 0;
 
-    LinearBVHNode& linearNode = linearNodes[*offset];
+    LinearBVHNode& linearNode = hostLinearNodes[*offset];
     linearNode.bounds = node->bounds;
-    // if(node -> depth < 8)
-    //     printf("flattening node at depth %d, current offset: %d\n", node->depth, *offset);
     int currentIndex = (*offset)++;
-    // linearNodes.push_back(linearNode);
     if (node->isLeaf)
     {
-        // printf("Leaf node created at index %d, triangle index: %d\n", currentIndex, node->offset);
-        linearNode.triangleIndex = node->offset; // Set the triangle index for leaf nodes
+        linearNode.triangleIndex = node->offset;
         linearNode.numTriangles = node->numTriangles;
     }
     else
     {
-        // left child is always the next node in the array
         FlattenBVHTree(node->left, offset);
         linearNode.rightChildIndex = FlattenBVHTree(node->right, offset);
     }
@@ -219,14 +213,12 @@ int BVH::FlattenBVHTree(BVHNode* node, int* offset)
 //     int dirIsNeg[3] = { invDir(0) < 0, invDir(1) < 0, invDir(2) < 0 };
 
 //     int toVisitOffset = 0, currentOffset = 0;
-//     int nodeToVisit[64]; // Stack to hold nodes to visit
+//     int nodeToVisit[64];
 
-//     // #pragma unroll
 //     while (true){
 //         cnt++;
 //         LinearBVHNode node = linearNodes[currentOffset];
 
-//         // Check if the ray intersects with the bounding box of the node
 //         if (node.bounds.IsIntersect(ray, invDir, dirIsNeg)){
 //             // printf("Ray intersects with node %d\n", currentOffset);
 //             if (node.triangleIndex != -1)
@@ -238,20 +230,20 @@ int BVH::FlattenBVHTree(BVHNode* node, int* offset)
 //                     }
 //                 }
 //                 if (toVisitOffset == 0)
-//                     break;                                    // Stack is empty, no more nodes to visit
-//                 currentOffset = nodeToVisit[--toVisitOffset]; // Pop the last node to visit
+//                     break;
+//                 currentOffset = nodeToVisit[--toVisitOffset];
 //             }
 //             else
 //             {
-//                 nodeToVisit[toVisitOffset++] = node.rightChildIndex; // Push right child node to visit stack
-//                 currentOffset = currentOffset + 1; // Move to the left node in the linear array
+//                 nodeToVisit[toVisitOffset++] = node.rightChildIndex;
+//                 currentOffset = currentOffset + 1;
 //             }
 //         }
 //         else
 //         {
 //             if (toVisitOffset == 0)
-//                 break;                                    // No more nodes to visit
-//             currentOffset = nodeToVisit[--toVisitOffset]; // Pop the last node to visit
+//                 break;
+//             currentOffset = nodeToVisit[--toVisitOffset];
 //         }
 //     }
 //     // printf("BVH traversal count: %d\n, hit = %d\n", cnt, hit);
@@ -266,7 +258,7 @@ __device__ bool BVH::IsIntersect(const Ray& ray, IntersectionInfo& info, float t
     int dirIsNeg[3] = { invDir(0) < 0, invDir(1) < 0, invDir(2) < 0 };
 
     int toVisitOffset = 0, currentOffset = 0;
-    int nodeToVisit[64]; // Stack to hold nodes to visit
+    int nodeToVisit[64];
 
     info.hitTime = tMax;
 
@@ -274,7 +266,6 @@ __device__ bool BVH::IsIntersect(const Ray& ray, IntersectionInfo& info, float t
         cnt++;
         LinearBVHNode node = linearNodes[currentOffset];
 
-        // printf("Ray intersects with node %d\n", currentOffset);
         if (node.triangleIndex != -1){
             for(int i = 0; i < linearNodes[currentOffset].numTriangles; i++){
                 if (orderedTriangles[node.triangleIndex + i].IsIntersect(ray, info)){
@@ -294,36 +285,31 @@ __device__ bool BVH::IsIntersect(const Ray& ray, IntersectionInfo& info, float t
             if(hitFirst && hitSecond){
                 if(tFirst < tSecond){
                     nodeToVisit[toVisitOffset++] = secondChild;
-                    nodeToVisit[toVisitOffset++] = firstChild; // Push right child node to visit stack
+                    nodeToVisit[toVisitOffset++] = firstChild;
                 }else{
-                    nodeToVisit[toVisitOffset++] = firstChild; // Push right child node to visit stack
-                    nodeToVisit[toVisitOffset++] = secondChild; // Push right child node to visit stack
+                    nodeToVisit[toVisitOffset++] = firstChild;
+                    nodeToVisit[toVisitOffset++] = secondChild;
                 }
             }else if(hitFirst){
-                nodeToVisit[toVisitOffset++] = firstChild; // Push right child node to visit stack
+                nodeToVisit[toVisitOffset++] = firstChild;
             }else if(hitSecond){
-                nodeToVisit[toVisitOffset++] = secondChild; // Push right child node to visit stack
+                nodeToVisit[toVisitOffset++] = secondChild;
             }
         }
 
         if (toVisitOffset == 0)
-            break;                                    // No more nodes to visit
-        currentOffset = nodeToVisit[--toVisitOffset]; // Pop the last node to visit   
+            break;
+        currentOffset = nodeToVisit[--toVisitOffset];
     }
 
     return hit;
 }
 
 void CreateBVH(BVH *hostBVH, BVH *deviceBVH){
-    // cudaMalloc(&deviceBVH, sizeof(BVH));
-    Triangle *orderedTriangles;
-    cudaMalloc(&orderedTriangles, sizeof(Triangle) * hostBVH->numTriangles);
-    cudaMemcpy(orderedTriangles, hostBVH->orderedTriangles, sizeof(Triangle) * hostBVH->numTriangles, cudaMemcpyHostToDevice);
-    LinearBVHNode *linearNodes;
-    cudaMalloc(&linearNodes, sizeof(LinearBVHNode) * hostBVH->totalNode);
-    cudaMemcpy(linearNodes, hostBVH->linearNodes, sizeof(LinearBVHNode) * hostBVH->totalNode, cudaMemcpyHostToDevice);
-    hostBVH->orderedTriangles = orderedTriangles;
-    hostBVH->linearNodes = linearNodes;
+    cudaMalloc(&hostBVH->orderedTriangles, sizeof(Triangle) * hostBVH->numTriangles);
+    cudaMemcpy(hostBVH->orderedTriangles, hostBVH->hostOrderedTriangles, sizeof(Triangle) * hostBVH->numTriangles, cudaMemcpyHostToDevice);
+    cudaMalloc(&hostBVH->linearNodes, sizeof(LinearBVHNode) * hostBVH->totalNode);
+    cudaMemcpy(hostBVH->linearNodes, hostBVH->hostLinearNodes, sizeof(LinearBVHNode) * hostBVH->totalNode, cudaMemcpyHostToDevice);
     cudaMemcpy(deviceBVH, hostBVH, sizeof(BVH), cudaMemcpyHostToDevice);
 }
 

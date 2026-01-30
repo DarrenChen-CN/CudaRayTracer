@@ -11,21 +11,17 @@ public:
     {
         min = Vec3f(FLOATMAX, FLOATMAX, FLOATMAX);
         max = Vec3f(-FLOATMAX, -FLOATMAX, -FLOATMAX);
-        // center = Vec3f(0, 0, 0);
     }
 
     __host__ __device__ Bounds3D(const Vec3f& min, const Vec3f& max) : min(min), max(max)
     {
-        // LOG_DEBUG("Bounds3D created with min: {}, {}, {} and max: {}, {}, {}", min(0), min(1), min(2), max(0), max(1), max(2));
+        
     }
 
     __host__ __device__ Bounds3D(const Vec3f& v0, const Vec3f& v1, const Vec3f& v2)
     {
-        // min = v0.cwiseMin(v1).cwiseMin(v2);
-        // max = v0.cwiseMax(v1).cwiseMax(v2);
         min = Min(v0, Min(v1, v2));
         max = Max(v0, Max(v1, v2));
-        // center = (min + max) / 2;
     }
 
     __host__ __device__ Bounds3D Expand(const Vec3f& point)
@@ -37,9 +33,6 @@ public:
 
     __host__ __device__ Bounds3D Expand(const Bounds3D& other)
     {
-        // Vec3f newMin = min.cwiseMin(other.min);
-        // Vec3f newMax = max.cwiseMax(other.max);
-        // return Bounds3D(newMin, newMax);
         auto pmin = Min(min, other.min);
         auto pmax = Max(max, other.max);
         return Bounds3D(pmin, pmax);
@@ -61,8 +54,6 @@ public:
         }
         
         float exit = tExit.minCoeff(), enter = tEnter.maxCoeff();
-        // float exit = fminf(fminf(tExit(0), tExit(1)), tExit(2));
-        // float enter = fmaxf(fmaxf(tEnter(0), tEnter(1)), tEnter(2));
         return exit - enter + 1e-2 >= 0 && exit + 1e-2 >= 0;
     }
 
@@ -82,8 +73,6 @@ public:
         }
         
         float exit = tExit.minCoeff(), enter = tEnter.maxCoeff();
-        // float exit = fminf(fminf(tExit(0), tExit(1)), tExit(2));
-        // float enter = fmaxf(fmaxf(tEnter(0), tEnter(1)), tEnter(2));
         t = enter;
         return exit - enter + 1e-2 >= 0 && exit + 1e-2 >= 0 && enter <= tMax && exit >= tMin;
     }
@@ -131,5 +120,4 @@ public:
 public:
     Vec3f min;
     Vec3f max;
-    // Vec3f center;
 };

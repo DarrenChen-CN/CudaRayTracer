@@ -13,7 +13,8 @@
       28.2792,
       2.8,
       0
-    ]
+    ],
+    "denoise": false
   },
   "textures": [],
   "materials": [

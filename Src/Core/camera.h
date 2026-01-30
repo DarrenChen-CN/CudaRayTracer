@@ -69,20 +69,10 @@ public:
         camParam.lookat = camParam.target;
         camParam.up = Vec3f(0, 1, 0);
 
-        // printf("last pos: %f, %f, %f -> new pos: %f, %f, %f\n", camParam.lastPosition(0), camParam.lastPosition(1), camParam.lastPosition(2), camParam.position(0), camParam.position(1), camParam.position(2));
-
         // Axis calculation
         camParam.w = -(camParam.lookat - camParam.position).normalized(); // z-axis
         camParam.u = camParam.up.normalized().cross(camParam.w).normalized();          // x-axis
         camParam.v = camParam.w.cross(camParam.u).normalized();                        // y-axis
-
-        // if(isnan(camParam.u(0)) || isnan(camParam.u(1)) || isnan(camParam.u(2)) || isnan(camParam.v(0)) || isnan(camParam.v(1)) || isnan(camParam.v(2))){
-        //     printf("Camera axis calculation resulted in NaN values. Check camera parameters.\n");
-        //     printf("Position: (%f, %f, %f), Lookat: (%f, %f, %f), Up: (%f, %f, %f)\n",
-        //            camParam.position(0), camParam.position(1), camParam.position(2),
-        //            camParam.lookat(0), camParam.lookat(1), camParam.lookat(2),
-        //            camParam.up(0), camParam.up(1), camParam.up(2));
-        // }
 
         camParam.focalLength = (camParam.lookat - camParam.position).norm();
         camParam.ratio = 1.f * camParam.width / camParam.height;

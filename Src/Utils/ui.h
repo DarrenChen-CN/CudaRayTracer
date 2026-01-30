@@ -21,11 +21,14 @@ public:
     void RenderFrameBuffer();
     void GuiBegin(int spp, bool &framebufferReset);
     void GuiEnd();
+    void SaveScreenshot(const std::string &filename);
     GLFWwindow* window;
     Shader* shader;
     int width, height;
     GLuint VAO, VBO, PBO, screenTexture;
     cudaGraphicsResource* cudaPBOResource;
-    // For reset camera movement
-    CameraParam defaultCameraParam;
+    // // For reset camera movement
+    // CameraParam defaultCameraParam;
+    uchar4* pixels;
+    size_t numBytes;
 };

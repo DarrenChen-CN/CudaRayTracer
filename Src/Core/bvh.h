@@ -13,23 +13,23 @@ enum BVHSplitMethod
 
 struct BVHNode
 {
-    BVHNode* left = nullptr;         // Left child
-    BVHNode* right = nullptr;        // Right child
-    Bounds3D bounds;                 // Bounding box of the node
-    bool isLeaf;                     // True if the node is a leaf node
+    BVHNode* left = nullptr;
+    BVHNode* right = nullptr;
+    Bounds3D bounds;
+    bool isLeaf;
     int depth = 0;
     int offset = 0;  
-    int numTriangles = 0;            // Number of triangles in the leaf node   
+    int numTriangles = 0;
 };
 
 struct LinearBVHNode
 {
-    int triangleIndex = -1;   // Index of the triangle if it's a leaf node
+    int triangleIndex = -1;
     union {
-        int numTriangles;    // Number of triangles in the leaf node
-        int rightChildIndex = -1; // Index of the right child node, notice that left child is always the next node in the array
+        int numTriangles;
+        int rightChildIndex = -1;
     };
-    Bounds3D bounds;          // Bounding box of the node
+    Bounds3D bounds;
 };
 
 struct SAHBucket
@@ -44,19 +44,23 @@ class BVH
 public:
     __host__ BVH();
     __host__  BVH(Triangle *triangles, int numTriangles, int maxTrianglesInLeaf = 4, BVHSplitMethod method = SAH);
+    __host__ ~BVH();
     __device__ bool IsIntersect(const Ray& ray, IntersectionInfo& info, float tMin = 0.f, float tMax = 1e8) const;
     __host__ int FlattenBVHTree(BVHNode* node, int* offset);
     __host__ BVHNode* RecursiveBuild(Triangle *triangles, int start, int end, std::vector<Triangle>&orderedTriangles, int depth = 0);
+    __host__ void ReleaseBVHNode(BVHNode* node);
 
-    int totalNode = 0; // Total number of nodes in the BVH
-    Triangle* orderedTriangles;
-    LinearBVHNode* linearNodes; // Linear BVH nodes for fast traversal
-    BVHNode* root = nullptr;
+    int totalNode = 0;
+    Triangle* orderedTriangles; // device
+    LinearBVHNode* linearNodes; // device
+    BVHNode* root = nullptr; // host
+    Triangle *hostOrderedTriangles = nullptr; // host
+    LinearBVHNode* hostLinearNodes = nullptr; // host
     int numTriangles = 0;
     int maxDepth = 0;
     BVHSplitMethod method = SAH;
 
-    int maxTrianglesInLeaf = 4; // Maximum number of triangles in a leaf node
+    int maxTrianglesInLeaf = 4;
 };
 
 void CreateBVH(BVH *hostBVH, BVH *deviceBVH);

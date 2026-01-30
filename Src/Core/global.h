@@ -25,13 +25,3 @@ typedef Eigen::Matrix3f Mat3f;
             std::cout << "CUDA error in " << __FILE__ << ": " << __LINE__ << ": " << cudaGetErrorString(err) << std::endl; \
         }                                                                                       \
     } while (0)
-
-// #define CHECK_CUDA_ERROR()                                                                  \
-//     do                                                                                          \
-//     {                                                                                           \
-//         cudaError_t err = cudaGetLastError();                                                                 \
-//         if (err != cudaSuccess)                                                                 \
-//         {                                                                                       \
-//             LOG_ERROR("CUDA error in {}: {}, {}", __FILE__, __LINE__, cudaGetErrorString(err)); \
-//         }                                                                                       \
-//     } while (0)

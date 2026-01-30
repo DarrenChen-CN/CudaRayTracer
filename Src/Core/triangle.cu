@@ -3,7 +3,6 @@
 __host__ __device__ Triangle::Triangle(Vertex &v0, Vertex &v1, Vertex &v2, int meshID)
     : v0(v0), v1(v1), v2(v2), meshID(meshID)
 {
-    // Compute the normal and area of the triangle
     normal = (v1.position - v0.position).cross(v2.position - v0.position);
     area = 0.5f * normal.norm();
     normal = normal.normalized();
@@ -149,11 +148,9 @@ __host__ __device__ Bounds3D Triangle::GetBounds() const {
 }
 
 void CreateTriangle(Triangle *hostTriangle, Triangle *deviceTriangle){
-    // cudaMalloc(&deviceTriangle, sizeof(Triangle));
     cudaMemcpy(deviceTriangle, hostTriangle, sizeof(Triangle), cudaMemcpyHostToDevice);
 }
 
 void CreateMeshData(MeshData *hostMesh, MeshData *deviceMesh){
-    // cudaMalloc(&deviceMesh, sizeof(MeshData));
     cudaMemcpy(deviceMesh, hostMesh, sizeof(MeshData), cudaMemcpyHostToDevice);
 }

@@ -93,7 +93,6 @@ __device__ void Light::SampleEnvLight(Bounds3D sceneBounds, TriangleSampleInfo &
         // Sample spherical direction
         float u, v, pdf;
         envMap -> Sample(u, v, sampler, idx);
-        // printf("Env Light Sample UV: (%f, %f)\n", u, v);
         float theta = u * 2.f * PI;
         float phi = acosf(1.f - 2.f * v);
         float x = sinf(phi) * sinf(theta);
@@ -148,10 +147,7 @@ __device__ Vec3f Light::Emission(Vec3f &wi) const{
         // Map to [0,1]
         float u = phi / (2.f * PI);
         float v = (theta / PI);
-        // printf("Env Light Emission UV: (%f, %f)\n", u, v);
-        // printf("cudaTextureObj: %d\n", envMap -> cudaTextureObj);
         float4 color = tex2D<float4>(envMap -> cudaTextureObj, u, v);
-        // printf("Env Light Emission Color: (%f, %f, %f)\n", color.x, color.y, color.z);
         return Vec3f(color.x, color.y, color.z);
     }else{
         return emission;

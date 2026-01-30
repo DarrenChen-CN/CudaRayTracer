@@ -11,6 +11,4 @@ public:
 
     Vec3f origin;
     Vec3f direction;
-
-    // __align__(16) float data[4];
 };

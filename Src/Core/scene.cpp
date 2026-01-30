@@ -16,7 +16,31 @@ __host__ __device__ Scene::Scene(const std::string &sceneFilePath){
 }
 
 __host__ __device__ Scene::~Scene(){
-    // Free device memory
+    // host
+    if(hostMaterials){
+        delete[] hostMaterials;
+    }
+    if(hostTextures){
+        delete[] hostTextures;
+    }
+    if(hostLightManager){
+        delete hostLightManager;
+    }
+    if(hostBVH){
+        delete hostBVH;
+    }
+    if(hostTriangles){
+        delete[] hostTriangles;
+    }
+    if(hostMeshes){
+        delete[] hostMeshes;
+    }
+    if(hostSampler){
+        delete hostSampler;
+    }
+
+
+    // devcie
     if (meshes) {
         cudaFree(meshes);
     }
@@ -28,6 +52,18 @@ __host__ __device__ Scene::~Scene(){
     }
     if (bvh) {
         cudaFree(bvh);
+    }
+    if(materials){
+        cudaFree(materials);
+    }
+    if(textures){
+        cudaFree(textures);
+    }
+    if(sampler){
+        cudaFree(sampler);
+    }
+    if(camera){
+        cudaFree(camera);
     }
 }
 
@@ -41,20 +77,19 @@ __host__ __device__ void Scene::BuildBVH(){
         printf("No triangles to build BVH");
         return;
     }
-    BVH *hostBVH = new BVH(hostTriangles, numTriangles, 4);
+    hostBVH = new BVH(hostTriangles, numTriangles, 4);
     if(hostBVH -> root){
         sceneBounds = hostBVH -> root -> bounds;
     }
     cudaMalloc(&bvh, sizeof(BVH));
     CreateBVH(hostBVH, bvh);
-    delete hostBVH;
 }
 
 __host__ __device__ bool Scene::ParseSceneFile(const std::string& filename) {
     std::cout << "Parsing scene file: " << filename << std::endl;
     std::ifstream file(filename);
     if (!file.is_open()) {
-        std::cerr << "Error: Cannot open scene file " << filename << std::endl;
+        std::cout << "Error: Cannot open scene file " << filename << std::endl;
         return false;
     }
     
@@ -88,12 +123,11 @@ __host__ __device__ bool Scene::ParseSceneFile(const std::string& filename) {
         }
 
         // Sampler
-        Sampler *hostSampler = new Sampler(1234, width * height);
+        hostSampler = new Sampler(1234, width * height);
         cudaMalloc(&sampler, sizeof(Sampler));
         CreateSampler(hostSampler, sampler);
 
         std::cout << "Scene loaded successfully!" << std::endl;
-        // std::cout << "  Camera: " << camera -> type << std::endl;
         std::cout << "Materials: " << numMaterials << std::endl;
         std::cout << "Objects: " << numMeshes << std::endl;
         std::cout << "Triangles: " << numTriangles << std::endl;
@@ -101,14 +135,14 @@ __host__ __device__ bool Scene::ParseSceneFile(const std::string& filename) {
 
         return true;
     } catch (const json::exception& e) {
-        std::cerr << "JSON parsing error: " << e.what() << std::endl;
+        std::cout << "JSON parsing error: " << e.what() << std::endl;
         return false;
     }
 }
 
 bool Scene::ParseCamera(const json& cameraJson) {
     if (!cameraJson.contains("type")) {
-        std::cerr << "Error: Camera missing 'type' field" << std::endl;
+        std::cout << "Error: Camera missing 'type' field" << std::endl;
         return false;
     }
 
@@ -119,15 +153,15 @@ bool Scene::ParseCamera(const json& cameraJson) {
     float fovy;
     CameraType type;
 
-    int maxBounces_ = 5; // Default max bounces
-    float rr_ = 0.8f; // Default Russian roulette probability
-    int spp_ = 16; // Default samples per pixel
+    int maxBounces_ = 5;
+    float rr_ = 0.8f;
+    int spp_ = 16;
 
     if(cameraJson["type"] == "pinhole"){
         type = PINHOLE;
         std::cout << "Camera type: PINHOLE" << std::endl;
     }else{
-        std::cerr << "Error: Unsupported camera type " << cameraJson["type"] << std::endl;
+        std::cout << "Error: Unsupported camera type " << cameraJson["type"] << std::endl;
         return false;
     }
 
@@ -175,7 +209,7 @@ bool Scene::ParseCamera(const json& cameraJson) {
 
 bool Scene::ParseMaterials(const json& materialsJson) {
     if (!materialsJson.is_array()) {
-        std::cerr << "Error: 'materials' should be an array" << std::endl;
+        std::cout << "Error: 'materials' should be an array" << std::endl;
         return false;
     }
 
@@ -188,22 +222,18 @@ bool Scene::ParseMaterials(const json& materialsJson) {
         auto& matJson = materialsJson[i];
 
         if (!matJson.contains("name") || !matJson.contains("type")) {
-            std::cerr << "Error: Material missing 'name' or 'type' field" << std::endl;
+            std::cout << "Error: Material missing 'name' or 'type' field" << std::endl;
             continue;
         }
 
         Material mat;
         
         std::string name = matJson["name"];
-        // materials[i].name = name;
         mat.name = name;
-        // std::cout << "Loading material: " << name << std::endl;
 
         if(matJson["type"] == "diffuse"){
-            // materials[i].type = DIFFUSE;
             mat.type = DIFFUSE;
         }else if(matJson["type"] == "light"){
-            // materials[i].type = LIGHT;
             mat.type = LIGHT;
         }else if(matJson["type"] == "pbr"){
             mat.type = PBR;
@@ -211,7 +241,7 @@ bool Scene::ParseMaterials(const json& materialsJson) {
             mat.type = SUBSURFACE;
         }
         else{
-            std::cerr << "Error: Unsupported material type " << matJson["type"] << std::endl;
+            std::cout << "Error: Unsupported material type " << matJson["type"] << std::endl;
             continue;
         }
 
@@ -219,10 +249,8 @@ bool Scene::ParseMaterials(const json& materialsJson) {
             if (matJson.contains("basecolor")) {
                 auto basecolor = matJson["basecolor"];
                 mat.basecolor = Vec3f(basecolor[0], basecolor[1], basecolor[2]);
-                mat.kd = mat.basecolor;
             } else {
                 mat.basecolor = Vec3f(0.0f, 0.0f, 0.0f);
-                mat.kd = Vec3f(0.0f, 0.0f, 0.0f);
             }
         }else if(mat.type == LIGHT){
             if (matJson.contains("emission")) {
@@ -250,10 +278,6 @@ bool Scene::ParseMaterials(const json& materialsJson) {
             }else{
                 mat.roughness = 0.5f;
             }
-            std::cout << "Material " << mat.name << ": basecolor=(" << mat.basecolor(0) << "," << mat.basecolor(1) << "," << mat.basecolor(2) << "), metallic=" << mat.metallic << ", roughness=" << mat.roughness << std::endl;
-            mat.F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), mat.basecolor, mat.metallic);
-            std::cout << "F0: " << mat.F0(0) << ", " << mat.F0(1) << ", " << mat.F0(2) << std::endl;
-            // mat.kd = (Vec3f(1.f, 1.f, 1.f) - mat.ks) * (1.0f - mat.metallic);
         }else if(mat.type == SUBSURFACE){
             if (matJson.contains("basecolor")) {
                 auto basecolor = matJson["basecolor"];
@@ -278,9 +302,16 @@ bool Scene::ParseMaterials(const json& materialsJson) {
             }
 
             mat.metallic = 0.0f;
-            float f0 = ((mat.ior - 1.f) * (mat.ior - 1.f)) / ((mat.ior + 1.f) * (mat.ior + 1.f));
-            mat.F0 = Vec3f(f0, f0, f0);
-            std::cout << "Material " << mat.name << ": basecolor=(" << mat.basecolor(0) << "," << mat.basecolor(1) << "," << mat.basecolor(2) << "), scatterDistance=(" << mat.scatterDistance(0) << "," << mat.scatterDistance(1) << "," << mat.scatterDistance(2) << "), ior=" << mat.ior << ", roughness=" << mat.roughness << std::endl;
+        }
+
+        if(matJson.contains("diffuse_texture")){
+            std::string texName = matJson["diffuse_texture"];
+            if(textureMap.find(texName) != textureMap.end()){
+                mat.diffuseTexture = textures + textureMap[texName];
+                mat.usingDiffuseTexture = true;
+            }else{
+                std::cout << "Warning: Texture '" << texName << "' not found for material '" << mat.name << "'" << std::endl;
+            }
         }
 
         materialMap[mat.name] = i;
@@ -293,7 +324,7 @@ bool Scene::ParseMaterials(const json& materialsJson) {
 
  bool Scene::ParseObjects(const json& objectJson) {
     if (!objectJson.is_array()) {
-        std::cerr << "Error: 'objects' should be an array" << std::endl;
+        std::cout << "Error: 'objects' should be an array" << std::endl;
         return false;
     }
 
@@ -312,7 +343,7 @@ bool Scene::ParseMaterials(const json& materialsJson) {
         auto& objJson = objectJson[i];
 
         if (!objJson.contains("name") || !objJson.contains("path")) {
-            std::cerr << "Error: Object missing 'name' or 'path' field" << std::endl;
+            std::cout << "Error: Object missing 'name' or 'path' field" << std::endl;
             continue;
         }
 
@@ -322,10 +353,10 @@ bool Scene::ParseMaterials(const json& materialsJson) {
             if (materialMap.find(matName) != materialMap.end()) {
                 materialId = materialMap[matName];
             } else {
-                std::cerr << "Warning: Material '" << matName << "' not found for object '" << objJson["name"] << "'" << std::endl;
+                std::cout << "Warning: Material '" << matName << "' not found for object '" << objJson["name"] << "'" << std::endl;
             }
         } else {
-            std::cerr << "Warning: Object '" << objJson["name"] << "' has no material specified" << std::endl;
+            std::cout << "Warning: Object '" << objJson["name"] << "' has no material specified" << std::endl;
         }
 
         mesh.name = objJson["name"];
@@ -414,7 +445,7 @@ bool Scene::ParseMaterials(const json& materialsJson) {
 
 __host__ __device__ bool Scene::ParseLights(const json& lightsJson) {
     if (!lightsJson.is_array()) {
-        std::cerr << "Error: 'lights' should be an array" << std::endl;
+        std::cout << "Error: 'lights' should be an array" << std::endl;
         return false;
     }
 
@@ -427,7 +458,7 @@ __host__ __device__ bool Scene::ParseLights(const json& lightsJson) {
         auto& lightJson = lightsJson[i];
 
         if (!lightJson.contains("type")) {
-            std::cerr << "Error: Light missing 'type' field" << std::endl;
+            std::cout << "Error: Light missing 'type' field" << std::endl;
             continue;
         }
 
@@ -442,17 +473,16 @@ __host__ __device__ bool Scene::ParseLights(const json& lightsJson) {
                 std::string matName = lightJson["material"];
                 if (materialMap.find(matName) != materialMap.end()) {
                     int matId = materialMap[matName];
-                    // Ensure the material is of type LIGHT
                     Material mat = hostMaterials[matId];
                     light.emission = mat.ke;
                 } else {
-                    std::cerr << "Warning: Material '" << matName << "' not found for light" << std::endl;
+                    std::cout << "Warning: Material '" << matName << "' not found for light" << std::endl;
                 }
             }
 
             std::string lightMeshName = lightJson["lightMeshName"];
             if(meshMap.find(lightMeshName) == meshMap.end()){
-                std::cerr << "Error: Light mesh '" << lightMeshName << "' not found" << std::endl;
+                std::cout << "Error: Light mesh '" << lightMeshName << "' not found" << std::endl;
                 continue;
             }
             int meshId = meshMap[lightMeshName];
@@ -473,14 +503,14 @@ __host__ __device__ bool Scene::ParseLights(const json& lightsJson) {
                 CreateHDRTexture(hostEnvironmentMap, deviceEnvironmentMap);
                 light.envMap = deviceEnvironmentMap;
             }else{
-                std::cerr << "Error: Env light missing 'path' field" << std::endl;
+                std::cout << "Error: Env light missing 'path' field" << std::endl;
                 continue;
             }
             CreateLight(&light, &(hostLightManager -> lights[i]));
             hostLightManager -> envMapLightIdx = i;
         }
         else{
-            std::cerr << "Error: Unsupported light type " << lightJson["type"] << std::endl;
+            std::cout << "Error: Unsupported light type " << lightJson["type"] << std::endl;
             continue;
         }
     }
@@ -493,20 +523,29 @@ __host__ __device__ bool Scene::ParseLights(const json& lightsJson) {
 
 __host__ __device__ bool Scene::ParseTextures(const json& texturesJson) {
     if (!texturesJson.is_array()) {
-        std::cerr << "Error: 'textures' should be an array" << std::endl;
+        std::cout << "Error: 'textures' should be an array" << std::endl;
         return false;
     }
 
     int textuerSize = texturesJson.size();
+    hostTextures = new Texture[textuerSize];
+    cudaMalloc((void**)&textures, textuerSize * sizeof(Texture));
     for(int i = 0; i < textuerSize; i++){
         auto& textureJson = texturesJson[i];
 
-        if (!textureJson.contains("type")) {
-            std::cerr << "Error: Texture missing 'type' field" << std::endl;
+        if (!textureJson.contains("path") || !textureJson.contains("name")) {
+            std::cout  << "Error: Texture missing 'path' or 'name' field" << std::endl;
             continue;
         }
-    }
 
+        std::string path = textureJson["path"];
+        std::string name = textureJson["name"];
+        Texture &tex = hostTextures[i];
+        tex.textureName = name;
+        tex.Load(path);
+        CreateTexture(&tex, &textures[i]);
+        textureMap[name] = i;
+    }
     return true;
 }
 
@@ -519,8 +558,6 @@ __host__ void Scene::InitCameraParam(){
     cameraParam.rr = this -> rr;
     cameraParam.spp = this -> spp;
     cameraParam.distance = sceneBounds.DiagonalLength() * 0.5f / sin(AngleToRadian(cameraParam.fovy) / 2.f)  * 0.6f;
-    // cameraParam.theta = 90.f;
-    // cameraParam.phi = 180.f;
     Vec3f dir = cameraParam.defaultDirection.normalized();
     cameraParam.theta = acosf(dir(1) / dir.norm());
     cameraParam.phi = atan2f(dir(0), dir(2));
@@ -533,7 +570,6 @@ __host__ void Scene::InitCameraParam(){
     cameraParam.lastLookat = cameraParam.lookat;
     cameraParam.lastPosition = cameraParam.position;
     cameraParam.lastUp = cameraParam.up; // avoid nan
-    std::cout << "Camera initialized. Position: (" << cameraParam.position(0) << ", " << cameraParam.position(1) << ", " << cameraParam.position(2) << ")" << std::endl;
 }
 
 __host__ void Scene::SetRenderParam(){

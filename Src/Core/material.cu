@@ -11,60 +11,64 @@ __host__ __device__ Material::~Material(){
 
 }
 
-__device__ Vec3f Material::Evaluate(Vec3f& wi, Vec3f& normal, Vec3f& wo) const{
+__device__ Vec3f Material::Evaluate(Vec3f& wi, Vec3f& normal, Vec3f& wo, Vec2f &uv) const{
     switch(type)
     {
         case DIFFUSE:
-            return EvaluateDiffuse(wi, normal, wo);
+            return EvaluateDiffuse(wi, normal, wo, uv);
         case PBR:
         case SUBSURFACE:
-            return EvaluatePBR(wi, normal, wo);
+            return EvaluatePBR(wi, normal, wo, uv);
         default:
-            return EvaluateDiffuse(wi, normal, wo);
+            return EvaluateDiffuse(wi, normal, wo, uv);
     }
 }
 
-__device__ void Material::Pdf(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf) const{
+__device__ void Material::Pdf(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, Vec2f &uv) const{
     pdf = 0.0f;
     switch(type)
     {
         case DIFFUSE:
-            PdfDiffuse(wi, normal, wo, pdf);
+            PdfDiffuse(wi, normal, wo, pdf, uv);
             break;
         case PBR:
         case SUBSURFACE:
-            PdfPBR(wi, normal, wo, pdf);
+            PdfPBR(wi, normal, wo, pdf, uv);
             break;
         default:
-            PdfDiffuse(wi, normal, wo, pdf);
+            PdfDiffuse(wi, normal, wo, pdf, uv);
             break;
     }
 }
 
-__device__ void Material::Sample(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, Sampler* sampler, int idx) const{
+__device__ void Material::Sample(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, Sampler* sampler, int idx, Vec2f &uv) const{
     switch(type)
     {
         case DIFFUSE:
-            SampleDiffuse(wi, normal, wo, pdf, sampler, idx);
+            SampleDiffuse(wi, normal, wo, pdf, sampler, idx, uv);
             break;
         case PBR:
         case SUBSURFACE:
-            SamplePBR(wi, normal, wo, pdf, sampler, idx); // use pbr sampling for subsurface default
+            SamplePBR(wi, normal, wo, pdf, sampler, idx, uv); // use pbr sampling for subsurface default
             break;
         default:
-            SampleDiffuse(wi, normal, wo, pdf, sampler, idx);
+            SampleDiffuse(wi, normal, wo, pdf, sampler, idx, uv);
             break;
     }
 }
 
 // diffuse
-__device__ Vec3f Material::EvaluateDiffuse(Vec3f& wi, Vec3f& normal, Vec3f& wo) const{
+__device__ Vec3f Material::EvaluateDiffuse(Vec3f& wi, Vec3f& normal, Vec3f& wo, Vec2f &uv) const{
+    Vec3f kd;
+    if(usingDiffuseTexture && diffuseTexture != nullptr)
+        kd = diffuseTexture->Sample(uv(0), uv(1));
+    else kd = basecolor;
     if (wo.dot(normal) > 0.f)
         return kd / PI;
     return Vec3f(0.f, 0.f, 0.f);
 }
 
-__device__ void Material::PdfDiffuse(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf) const{
+__device__ void Material::PdfDiffuse(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, Vec2f &uv) const{
     if (wo.dot(normal) > 0.f) {
         pdf = wo.dot(normal) / PI;
         return;
@@ -72,13 +76,13 @@ __device__ void Material::PdfDiffuse(Vec3f& wi, Vec3f& normal, Vec3f& wo, float&
     pdf = 0.f;
 }
 
-__device__ void Material::SampleDiffuse(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, Sampler* sampler, int idx) const{
+__device__ void Material::SampleDiffuse(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, Sampler* sampler, int idx, Vec2f &uv) const{
     Vec2f sample = sampler->Get2D(idx);
     float t1 = sample(0), t2 = sample(1);
     float theta = 0.5 * acos(1 - 2 * t1), phi = 2 * PI * t2;
     float x = sin(theta) * cos(phi), y = sin(theta) * sin(phi), z = cos(theta);
     wo = LocalToWorld(Vec3f(x, y, z), normal);
-    PdfDiffuse(wi, normal, wo, pdf);
+    PdfDiffuse(wi, normal, wo, pdf, uv);
     return;
 }
 
@@ -96,7 +100,7 @@ __device__ void Material::DistributionGGX(Vec3f& wi, Vec3f& normal, Vec3f& wo, f
     D = alpha2 / denom;
 }
 
-__device__ void Material::FresnelSchlick(Vec3f& wi, Vec3f& normal, Vec3f& wo, Vec3f& F) const{
+__device__ void Material::FresnelSchlick(Vec3f& wi, Vec3f& normal, Vec3f& wo, Vec3f& F, Vec3f& F0) const{
     Vec3f halfVector = (wi + wo).normalized();
     float HdotV = fmaxf(halfVector.dot(wi), 0.f);
     F = F0 + (Vec3f(1.f, 1.f, 1.f) - F0) * powf((1.f - HdotV), 5.f);
@@ -123,7 +127,7 @@ __device__ void Material::GeometrySchlickGGX(Vec3f& wi, Vec3f& normal, Vec3f& wo
     G = G1V * G1L;
 }
 
-__device__ Vec3f Material::EvaluatePBR(Vec3f& wi, Vec3f& normal, Vec3f& wo) const{
+__device__ Vec3f Material::EvaluatePBR(Vec3f& wi, Vec3f& normal, Vec3f& wo, Vec2f &uv) const{
     float NdotV = max(normal.dot(wi), 0.0f);
     float NdotL = max(normal.dot(wo), 0.0f);
     if (NdotL <= 0.0f || NdotV <= 0.0f) return Vec3f(0.f, 0.f, 0.f);
@@ -134,11 +138,13 @@ __device__ Vec3f Material::EvaluatePBR(Vec3f& wi, Vec3f& normal, Vec3f& wo) cons
 
     // 1. Specular 
     float D, G;
-    Vec3f F;
+    Vec3f F, F0;
+    if(usingDiffuseTexture && diffuseTexture != nullptr)
+        F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), diffuseTexture->Sample(uv(0), uv(1)), metallic);
+    else F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), basecolor, metallic);
     DistributionGGX(wi, normal, wo, D);
     GeometrySchlickGGX(wi, normal, wo, G);
-    FresnelSchlick(wi, normal, wo, F);
-
+    FresnelSchlick(wi, normal, wo, F, F0);
     Vec3f numerator = F * (D * G);
     float denominator = 4.0f * NdotV * NdotL + 0.0001f;
     Vec3f specular = numerator / denominator;
@@ -146,7 +152,6 @@ __device__ Vec3f Material::EvaluatePBR(Vec3f& wi, Vec3f& normal, Vec3f& wo) cons
     // 2. Diffuse
     Vec3f ks = F;
     Vec3f kd = (Vec3f(1.0f, 1.0f, 1.0f) - ks) * (1.0f - metallic);
-    // printf("kd: %f, %f, %f\n", kd.x(), kd.y(), kd.z());
     Vec3f diffuse;
     if(wi.dot(normal) > 0.f && wo.dot(normal) > 0.f){
         diffuse = kd.cwiseProduct(basecolor) / PI;
@@ -157,8 +162,12 @@ __device__ Vec3f Material::EvaluatePBR(Vec3f& wi, Vec3f& normal, Vec3f& wo) cons
     return diffuse + specular;
 }
 
-__device__ void Material::PdfPBR(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf) const{
+__device__ void Material::PdfPBR(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, Vec2f &uv) const{
     // P_spec
+    Vec3f F0;
+    if(usingDiffuseTexture && diffuseTexture != nullptr)
+        F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), diffuseTexture->Sample(uv(0), uv(1)), metallic);
+    else F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), basecolor, metallic);
     float NdotV = max(normal.dot(wi), 0.0f);
     Vec3f FAppro = F0 + (Vec3f(1.0f, 1.0f, 1.0f) - F0) * powf((1.0f - NdotV), 5.0f);
     
@@ -183,14 +192,16 @@ __device__ void Material::PdfPBR(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf
     // 2. Diffuse PDF (Cosine Weighted)
     float pdf_diff = NdotL / PI;
 
-    // printf("P_spec: %f, pdf_spec: %f, pdf_diff: %f\n", P_spec, pdf_spec, pdf_diff);
-
     // 3. mix PDF
     pdf = P_spec * pdf_spec + (1.0f - P_spec) * pdf_diff;
 }
 
-__device__ void Material::SamplePBR(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, Sampler* sampler, int idx) const{
+__device__ void Material::SamplePBR(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, Sampler* sampler, int idx, Vec2f &uv) const{
     // P_spec
+    Vec3f F0;
+    if(usingDiffuseTexture && diffuseTexture != nullptr)
+        F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), diffuseTexture->Sample(uv(0), uv(1)), metallic);
+    else F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), basecolor, metallic);
     float NdotV = max(normal.dot(wi), 0.0f);
     Vec3f FAppro = F0 + (Vec3f(1.0f, 1.0f, 1.0f) - F0) * powf((1.0f - NdotV), 5.0f);
     
@@ -225,7 +236,7 @@ __device__ void Material::SamplePBR(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& 
         wo = LocalToWorld(lLocal, normal);
     }
 
-    PdfPBR(wi, normal, wo, pdf);
+    PdfPBR(wi, normal, wo, pdf, uv);
 }
 
 __device__ Vec3f Material::EvaluateSpatialDiffusionProfile(Vec3f& wi, Vec3f& normal, Vec3f& hitPoint, Vec3f& outgoingPoint, Vec3f &outgoingNormal) const{
@@ -285,20 +296,15 @@ __device__ void Material::SampleBurleyDiffusionProfile(float& distance, float &p
 
 __device__ void Material::BurleyDiffusionProfile(float& distance, float& pdf, int channel) const{
     float d = scatterDistance(channel);
-    // printf("material type: %d, scatterDistance[%f, %f, %f]\n", type, scatterDistance(0), scatterDistance(1), scatterDistance(2));
     float r = distance;
     if(r < 1e-6f || d < 1e-6f){
         pdf = 0.f;
         return;
     }
-    // if(r < 0.f){
-    //     pdf = 0.f;
-    //     return;
-    // }
+
     float exp1 = expf(-r / d);
     float exp2 = expf(- r / (3 *d));
     pdf = (exp1 + exp2) / (8.f * PI * d * r);
-    // printf("d: %f, r: %f, pdf: %f\n", d, r, pdf);
 }
 
 __device__ void Material::PdfBurleyDiffusionProfile(float& distance, float& pdf) const{
@@ -320,7 +326,6 @@ __device__ void Material::ProbeOutgongingPoint(Vec3f& hitPoint, Vec3f& normal, V
     if(bvh->IsIntersect(probeRay, isect, tMin, tMax)){
         outgoingPoint = isect.hitPoint;
         outgoingNormal = isect.normal;
-        // printf("probe hit inside geometry!\n");
     }else{
         // using the original hit point
         outgoingPoint = hitPoint;
@@ -333,6 +338,5 @@ __device__ bool Material::IsLight() const{
 }
 
 void CreateMaterial(Material *hostMaterial, Material *deviceMaterial){
-    // cudaMalloc(&deviceMaterial, sizeof(Material));
     cudaMemcpy(deviceMaterial, hostMaterial, sizeof(Material), cudaMemcpyHostToDevice);
 }

@@ -33,8 +33,6 @@ __host__ void HDRTexture::Load(std::string filename){
     CHECK_CUDA_ERROR(cudaMemcpyToArray(cudaArrayPtr, 0, 0, hostData, size, cudaMemcpyHostToDevice));
 
     // compute CDFs for importance sampling
-    // uCDF = new float[width * height];
-    // vCDF = new float[height];
     uCDF = (float*)malloc(width * height * sizeof(float));
     vCDF = (float*)malloc(height * sizeof(float));
     float *hostUCDF = new float[width * height];
@@ -155,7 +153,7 @@ __device__ void HDRTexture::Sample(float &u, float &v, Sampler *sampler, int idx
 }
 
 __device__ void HDRTexture::SamplePDF(float &u, float &v, float &pdf) const{
-    u = Clamp(0.0f, 0.999999f, u); // 确保不会越界
+    u = Clamp(0.0f, 0.999999f, u);
     v = Clamp(0.0f, 0.999999f, v);
     // (u, v) -> (uIdx, vIdx)
     int uIdx = min(int(u * width), width - 1);
@@ -168,7 +166,7 @@ __device__ void HDRTexture::SamplePDF(float &u, float &v, float &pdf) const{
 }
 
 __device__ void HDRTexture::SampleSolidAnglePDF(float &u, float &v, float &pdf) const {
-    u = Clamp(0.0f, 0.999999f, u); // 确保不会越界
+    u = Clamp(0.0f, 0.999999f, u);
     v = Clamp(0.0f, 0.999999f, v);
     // (u, v) -> (uIdx, vIdx)
     int uIdx = min(int(u * width), width - 1);
@@ -185,6 +183,72 @@ __device__ void HDRTexture::SampleSolidAnglePDF(float &u, float &v, float &pdf) 
     pdf = p * width * height / (2.0f * PI * PI * sinf(theta)); // convert to solid angle PDF
 }
 
+__host__ Texture::Texture(std::string filename){
+    Load(filename);
+}
+
+__host__ Texture::Texture(){
+    width = 0;
+    height = 0;
+    cudaTextureObj = 0;
+    cudaArrayPtr = nullptr;
+}
+
+__host__ Texture::~Texture(){
+    if(cudaTextureObj){
+        cudaDestroyTextureObject(cudaTextureObj);
+    }
+    if(cudaArrayPtr){
+        cudaFreeArray(cudaArrayPtr);
+    }
+}
+
+__host__ void Texture::Load(std::string filename){
+    width = 0;
+    height = 0;
+
+    int channels;
+    unsigned char *hostData = stbi_load(filename.c_str(), &width, &height, &channels, 4); // cuda texture needs 4 channels
+    if(!hostData){
+        std::cout << "Failed to load image: " + filename << std::endl;
+    }
+
+    // allocate cuda array
+    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<uchar4>();
+    CHECK_CUDA_ERROR(cudaMallocArray(&cudaArrayPtr, &channelDesc, width, height));
+
+    // host to device copy
+    const size_t size = width * height * 4 * sizeof(unsigned char);
+    CHECK_CUDA_ERROR(cudaMemcpyToArray(cudaArrayPtr, 0, 0, hostData, size, cudaMemcpyHostToDevice));
+
+    stbi_image_free(hostData);
+
+    cudaResourceDesc resDesc = {};
+    resDesc.resType = cudaResourceTypeArray;
+    resDesc.res.array.array = cudaArrayPtr;
+
+    cudaTextureDesc texDesc = {};
+    texDesc.addressMode[0] = cudaAddressModeWrap;
+    texDesc.addressMode[1] = cudaAddressModeClamp;
+    texDesc.filterMode = cudaFilterModeLinear;
+    texDesc.readMode = cudaReadModeNormalizedFloat; // map [0,255] to [0.0,1.0]
+    texDesc.normalizedCoords = 1; // access with normalized texture coordinates
+
+    CHECK_CUDA_ERROR(cudaCreateTextureObject(&cudaTextureObj, &resDesc, &texDesc, nullptr));
+}
+
+__device__ Vec3f Texture::Sample(float &u, float &v) const {
+    u = Clamp(0.0f, 0.999999f, u);
+    v = Clamp(0.0f, 0.999999f, v);
+    // sample texture
+    float4 color = tex2D<float4>(cudaTextureObj, u, v);
+    return Vec3f(color.x, color.y, color.z);
+}
+
 void CreateHDRTexture(HDRTexture *hostTexture, HDRTexture *deviceTexture){
     CHECK_CUDA_ERROR(cudaMemcpy(deviceTexture, hostTexture, sizeof(HDRTexture), cudaMemcpyHostToDevice));
+}
+
+void CreateTexture(Texture *hostTexture, Texture *deviceTexture){
+    CHECK_CUDA_ERROR(cudaMemcpy(deviceTexture, hostTexture, sizeof(Texture), cudaMemcpyHostToDevice));
 }

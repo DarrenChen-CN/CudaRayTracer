@@ -11,7 +11,6 @@ __host__ LightManager::~LightManager(){
 }
 
 __device__ Light* LightManager::GetLight(int idx){
-    // printf("GetLight idx: %d, numLights: %d\n", idx, numLights);
     if(idx < 0 || idx >= numLights) return nullptr;
     return &lights[idx];
 }
@@ -21,11 +20,9 @@ __device__ Light* LightManager::SampleLight(Sampler *sampler, int idx, float &pd
     int lightID;
     if(strategy == UNIFORM){
         lightID = static_cast<int>(sampler->Get1D(idx) * numLights);
-        // printf("sampled lightID: %d, light area: %f\n", lightID, lights[lightID].area);
         if(lightID == numLights) lightID = numLights - 1; // Clamp
         pdf = 1.0f / numLights;
     }
-    // printf("Sampled lightID: %d\n", lightID);
     return GetLight(lightID);
 }
 
