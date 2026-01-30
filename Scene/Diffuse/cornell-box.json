@@ -13,7 +13,8 @@
       0,
       0,
       -1
-    ]
+    ],
+    "denoise": true
   },
   "textures": [],
   "materials": [

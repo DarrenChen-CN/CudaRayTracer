@@ -32,7 +32,7 @@ struct RenderParam{
     int spp;
     int maxBounces;
     int renderTargetMode = 0; // 0: color, 1: depth, 2: normal, 3: id
-    bool denoise = true;
+    bool denoise = false;
     int currentRenderBufferIndex = 0;
     int currentGBufferIndex = 0;
 
@@ -86,4 +86,5 @@ public:
     float rr;
     int spp;
     int maxBounces;
+    bool denoise = false;
 };

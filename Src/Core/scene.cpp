@@ -161,6 +161,10 @@ bool Scene::ParseCamera(const json& cameraJson) {
         cameraParam.defaultDirection = Vec3f(pos[0], pos[1], pos[2]);
     }
 
+    if(cameraJson.contains("denoise")){
+        denoise = cameraJson["denoise"];
+    }
+
     cudaMalloc(&camera, sizeof(Camera));
     Camera *hostCamera = new Camera(type);
     CreateCamera(hostCamera, camera);
@@ -552,4 +556,5 @@ __host__ void Scene::SetRenderParam(){
     renderParam.hostMeshes = hostMeshes;
     renderParam.hostMaterials = hostMaterials;
     renderParam.numMeshes = numMeshes;
+    renderParam.denoise = denoise;
 }
