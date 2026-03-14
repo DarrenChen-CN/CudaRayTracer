@@ -4,7 +4,7 @@
 
 - Wavefront path tracing
 - SAH BVH 构建和线性 BVH 遍历
-- Diffuse、PBR、SSS、Dielectric材质
+- Diffuse、PBR、Subsurface Scattering、Dielectric材质
 - Importance Sampling 和 MIS
 - 面光源和 HDR 环境光
 - SVGF降噪
@@ -27,7 +27,7 @@
 ### SSS
 
 
-![SSS](Result/sss.png)
+![Subsurface Scattering](Result/sss.png)
 
 ### MIS
 
