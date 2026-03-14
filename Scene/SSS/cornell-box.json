@@ -83,7 +83,7 @@
   "objects": [
     {
       "name": "1",
-      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_1.obj",
+      "path": "D://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_1.obj",
       "translate": [
         0,
         0,
@@ -103,7 +103,7 @@
     },
     {
       "name": "2",
-      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_2.obj",
+      "path": "D://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_2.obj",
       "translate": [
         0,
         0,
@@ -123,7 +123,7 @@
     },
     {
       "name": "3",
-      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_3.obj",
+      "path": "D://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_3.obj",
       "translate": [
         0,
         0,
@@ -143,7 +143,7 @@
     },
     {
       "name": "4",
-      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_4.obj",
+      "path": "D://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_4.obj",
       "translate": [
         0,
         0,
@@ -163,7 +163,7 @@
     },
     {
       "name": "5",
-      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_5.obj",
+      "path": "D://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_5.obj",
       "translate": [
         0,
         0,
@@ -183,7 +183,7 @@
     },
     {
       "name": "6",
-      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_6.obj",
+      "path": "D://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_6.obj",
       "translate": [
         0,
         0,
@@ -203,7 +203,7 @@
     },
     {
       "name": "7",
-      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_7.obj",
+      "path": "D://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_7.obj",
       "translate": [
         0,
         0,
@@ -223,7 +223,7 @@
     },
     {
       "name": "8",
-      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_8.obj",
+      "path": "D://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_8.obj",
       "translate": [
         0,
         0,
@@ -243,7 +243,7 @@
     },
     {
       "name": "9",
-      "path": "E://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_9.obj",
+      "path": "D://code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_9.obj",
       "translate": [
         0,
         0,

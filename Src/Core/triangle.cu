@@ -124,7 +124,7 @@ __device__ bool Triangle::IsIntersect(const Ray& ray, IntersectionInfo& info, fl
 
     info.hitTime = t;
     info.hitPoint = b0 * v0.position + b1 * v1.position + b2 * v2.position;
-    info.shadingNormal = b0 * v0.normal + b1 * v1.normal + b2 * v2.normal;
+    info.shadingNormal = (b0 * v0.normal + b1 * v1.normal + b2 * v2.normal).normalized();
     info.normal = normal;
     info.texCoord = b0 * v0.texCoord + b1 * v1.texCoord + b2 * v2.texCoord;
     info.meshID = meshID;

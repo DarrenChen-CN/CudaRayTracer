@@ -6,9 +6,19 @@
 #include "stringutil.h"
 #include "triangle.h"
 
+struct LoadedOBJMesh
+{
+    std::string name;
+    std::string materialName;
+    std::vector<Vertex> vertices;
+    std::vector<Triangle> triangles;
+};
 
 class OBJLoader
 {
 public:
-    __host__ __device__ static std::vector<Triangle> LoadObject(int id, std::string objpath, Mat4f transform = Mat4f::Identity(), Mat4f transformInv = Mat4f::Identity());
+    __host__ static std::vector<LoadedOBJMesh> LoadObject(
+        std::string objpath,
+        Mat4f transform = Mat4f::Identity(),
+        Mat4f transformInv = Mat4f::Identity());
 };

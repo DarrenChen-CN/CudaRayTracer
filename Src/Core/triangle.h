@@ -26,6 +26,7 @@ struct RenderSegment
     int index;
     int remainingBounces;
     bool firstBounce = true;
+    bool specularBounce = false;
     float pdfBrdf = 0.f; // For MIS
 };
 

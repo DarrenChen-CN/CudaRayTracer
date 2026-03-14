@@ -1,0 +1,303 @@
+{
+    "camera": {
+        "type": "pinhole",
+        "resolution": [
+            1400,
+            1400
+        ],
+        "fov": 36,
+        "max_bounces": 6,
+        "rr": 0.7,
+        "spp": 4096,
+        "direction": [
+            -1.15,
+            0.62,
+            -1.2
+        ],
+        "denoise": false
+    },
+    "textures": [
+        {
+            "name": "BishopWhiteTex",
+            "path": "D:/code/projects/CudaRayTracer/Model/ABeautifulGame/textures/image_0.jpg"
+        },
+        {
+            "name": "BishopBlackTex",
+            "path": "D:/code/projects/CudaRayTracer/Model/ABeautifulGame/textures/image_3.jpg"
+        },
+        {
+            "name": "KingBlackTex",
+            "path": "D:/code/projects/CudaRayTracer/Model/ABeautifulGame/textures/image_6.jpg"
+        },
+        {
+            "name": "KingWhiteTex",
+            "path": "D:/code/projects/CudaRayTracer/Model/ABeautifulGame/textures/image_9.jpg"
+        },
+        {
+            "name": "QueenBlackTex",
+            "path": "D:/code/projects/CudaRayTracer/Model/ABeautifulGame/textures/image_12.jpg"
+        },
+        {
+            "name": "QueenWhiteTex",
+            "path": "D:/code/projects/CudaRayTracer/Model/ABeautifulGame/textures/image_15.jpg"
+        },
+        {
+            "name": "ChessboardTex",
+            "path": "D:/code/projects/CudaRayTracer/Model/ABeautifulGame/textures/image_18.jpg"
+        },
+        {
+            "name": "PawnBodyWhiteTex",
+            "path": "D:/code/projects/CudaRayTracer/Model/ABeautifulGame/textures/image_23.jpg"
+        },
+        {
+            "name": "PawnBodyBlackTex",
+            "path": "D:/code/projects/CudaRayTracer/Model/ABeautifulGame/textures/image_24.jpg"
+        },
+        {
+            "name": "CastleBlackTex",
+            "path": "D:/code/projects/CudaRayTracer/Model/ABeautifulGame/textures/image_25.jpg"
+        },
+        {
+            "name": "CastleWhiteTex",
+            "path": "D:/code/projects/CudaRayTracer/Model/ABeautifulGame/textures/image_28.jpg"
+        },
+        {
+            "name": "KnightBlackTex",
+            "path": "D:/code/projects/CudaRayTracer/Model/ABeautifulGame/textures/image_29.jpg"
+        },
+        {
+            "name": "KnightWhiteTex",
+            "path": "D:/code/projects/CudaRayTracer/Model/ABeautifulGame/textures/image_32.jpg"
+        }
+    ],
+    "materials": [
+
+        {
+            "name": "Chessboard",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                1,
+                1
+            ],
+            "metallic": 0,
+            "roughness": 0.035,
+            "diffuse_texture": "ChessboardTex"
+        },
+        {
+            "name": "King_Black",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                1,
+                1
+            ],
+            "metallic": 0,
+            "roughness": 0.035,
+            "diffuse_texture": "KingBlackTex"
+        },
+        {
+            "name": "King_White",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                1,
+                1
+            ],
+            "metallic": 0,
+            "roughness": 0.055,
+            "diffuse_texture": "KingWhiteTex"
+        },
+        {
+            "name": "Queen_Black",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                1,
+                1
+            ],
+            "metallic": 0,
+            "roughness": 0.035,
+            "diffuse_texture": "QueenBlackTex"
+        },
+        {
+            "name": "Queen_White",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                1,
+                1
+            ],
+            "metallic": 0,
+            "roughness": 0.055,
+            "diffuse_texture": "QueenWhiteTex"
+        },
+        {
+            "name": "Pawn_Body_White",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                1,
+                1
+            ],
+            "metallic": 0,
+            "roughness": 0.055,
+            "diffuse_texture": "PawnBodyWhiteTex"
+        },
+        {
+            "name": "Pawn_Top_White",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                1,
+                0.828
+            ],
+            "metallic": 0,
+            "roughness": 0.06
+        },
+        {
+            "name": "Pawn_Body_Black",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                1,
+                1
+            ],
+            "metallic": 0,
+            "roughness": 0.035,
+            "diffuse_texture": "PawnBodyBlackTex"
+        },
+        {
+            "name": "Pawn_Top_Black",
+            "type": "pbr",
+            "basecolor": [
+                0.2995,
+                0.5,
+                0.45
+            ],
+            "metallic": 0,
+            "roughness": 0.045
+        },
+        {
+            "name": "Castle_Black",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                1,
+                1
+            ],
+            "metallic": 0,
+            "roughness": 0.035,
+            "diffuse_texture": "CastleBlackTex"
+        },
+        {
+            "name": "Castle_White",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                1,
+                1
+            ],
+            "metallic": 0,
+            "roughness": 0.055,
+            "diffuse_texture": "CastleWhiteTex"
+        },
+        {
+            "name": "Knight_Black",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                1,
+                1
+            ],
+            "metallic": 0,
+            "roughness": 0.035,
+            "diffuse_texture": "KnightBlackTex"
+        },
+        {
+            "name": "Knight_White",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                1,
+                1
+            ],
+            "metallic": 0,
+            "roughness": 0.055,
+            "diffuse_texture": "KnightWhiteTex"
+        },
+        {
+            "name": "Bishop_Black",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                1,
+                1
+            ],
+            "metallic": 0,
+            "roughness": 0.035,
+            "diffuse_texture": "BishopBlackTex"
+        },
+        {
+            "name": "Bishop_White",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                1,
+                1
+            ],
+            "metallic": 0,
+            "roughness": 0.055,
+            "diffuse_texture": "BishopWhiteTex"
+        }
+    ],
+    "objects": [
+        {
+            "name": "wet_ground",
+            "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane_uv_double.obj",
+            "translate": [
+                -900,
+                -1,
+                900
+            ],
+            "scale": [
+                1800,
+                1800,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": -90
+                }
+            ],
+            "material": "WetGround"
+        },
+        {
+            "name": "beautiful_game",
+            "path": "D:/code/projects/CudaRayTracer/Model/ABeautifulGame/ABeautifulGame.obj",
+            "translate": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                900,
+                900,
+                900
+            ],
+            "rotate": [
+                {
+                    "rotateY": 45
+                }
+            ],
+            "default_material": "Chessboard"
+        }
+    ],
+    "lights": [
+        {
+            "name": "PetitPort",
+            "type": "env",
+            "path": "D:/code/projects/CudaRayTracer/Image/HDR/qwantani_dusk_2_puresky_4k.hdr"
+        }
+    ]
+}

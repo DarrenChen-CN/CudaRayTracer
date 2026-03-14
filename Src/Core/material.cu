@@ -19,6 +19,8 @@ __device__ Vec3f Material::Evaluate(Vec3f& wi, Vec3f& normal, Vec3f& wo, Vec2f &
         case PBR:
         case SUBSURFACE:
             return EvaluatePBR(wi, normal, wo, uv);
+        case DIELECTRIC:
+            return Vec3f(0.f, 0.f, 0.f);
         default:
             return EvaluateDiffuse(wi, normal, wo, uv);
     }
@@ -34,6 +36,9 @@ __device__ void Material::Pdf(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, V
         case PBR:
         case SUBSURFACE:
             PdfPBR(wi, normal, wo, pdf, uv);
+            break;
+        case DIELECTRIC:
+            pdf = 0.0f;
             break;
         default:
             PdfDiffuse(wi, normal, wo, pdf, uv);
@@ -51,6 +56,11 @@ __device__ void Material::Sample(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf
         case SUBSURFACE:
             SamplePBR(wi, normal, wo, pdf, sampler, idx, uv); // use pbr sampling for subsurface default
             break;
+        case DIELECTRIC: {
+            Vec3f weight;
+            SampleDielectric(wi, normal, wo, pdf, weight, sampler, idx);
+            break;
+        }
         default:
             SampleDiffuse(wi, normal, wo, pdf, sampler, idx, uv);
             break;
@@ -87,7 +97,7 @@ __device__ void Material::SampleDiffuse(Vec3f& wi, Vec3f& normal, Vec3f& wo, flo
 }
 
 // PBR
-// 采样过程中wi是 p -> eye方向的入射光，wo是 p -> light方向的出射光
+// 采样过程中wi为p -> eye方向的入射光，wo为p -> light方向的出射光
 __device__ void Material::DistributionGGX(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& D) const{
     Vec3f halfVector = (wi + wo).normalized();
     float NdotH = fmaxf(normal.dot(halfVector), 0.f);
@@ -95,7 +105,7 @@ __device__ void Material::DistributionGGX(Vec3f& wi, Vec3f& normal, Vec3f& wo, f
     float alpha2 = alpha * alpha;
     float NdotH2 = NdotH * NdotH;
 
-    float denom = (NdotH2 * (alpha - 1.f) + 1.f);
+    float denom = (NdotH2 * (alpha2 - 1.f) + 1.f);
     denom = PI * denom * denom;
     D = alpha2 / denom;
 }
@@ -107,12 +117,80 @@ __device__ void Material::FresnelSchlick(Vec3f& wi, Vec3f& normal, Vec3f& wo, Ve
 }
 
 __device__ void Material::Fresnel(Vec3f& wi, Vec3f& normal, Vec3f& F) const{
-    float cosThetaI = fmaxf(normal.dot(wi), 0.f);
-    float cosThetaT = sqrtf(1.f - (1.f - cosThetaI * cosThetaI) / (ior * ior));
-    float Rs = powf((ior * cosThetaI - cosThetaT) / (ior * cosThetaI + cosThetaT), 2.f);
-    float Rp = powf((ior * cosThetaT - cosThetaI) / (ior * cosThetaT + cosThetaI), 2.f);
-    float reflectance = (Rs + Rp) / 2.f;
+    float reflectance = FresnelDielectric(normal.dot(wi), 1.0f, ior);
     F = Vec3f(reflectance, reflectance, reflectance);
+}
+
+__device__ float Material::FresnelDielectric(float cosThetaI, float etaI, float etaT) const{
+    cosThetaI = Clamp(-1.0f, 1.0f, cosThetaI);
+    bool entering = cosThetaI > 0.0f;
+    if (!entering) {
+        float temp = etaI;
+        etaI = etaT;
+        etaT = temp;
+        cosThetaI = fabsf(cosThetaI);
+    }
+
+    float sinThetaI = sqrtf(fmaxf(0.0f, 1.0f - cosThetaI * cosThetaI));
+    float sinThetaT = etaI / etaT * sinThetaI;
+    if (sinThetaT >= 1.0f) {
+        return 1.0f;
+    }
+
+    float cosThetaT = sqrtf(fmaxf(0.0f, 1.0f - sinThetaT * sinThetaT));
+    float rParallel = ((etaT * cosThetaI) - (etaI * cosThetaT)) / ((etaT * cosThetaI) + (etaI * cosThetaT));
+    float rPerpendicular = ((etaI * cosThetaI) - (etaT * cosThetaT)) / ((etaI * cosThetaI) + (etaT * cosThetaT));
+    return 0.5f * (rParallel * rParallel + rPerpendicular * rPerpendicular);
+}
+
+__device__ bool Material::RefractDirection(const Vec3f& incident, const Vec3f& normal, float eta, Vec3f& refracted) const{
+    float cosThetaI = fmaxf(0.0f, -incident.dot(normal));
+    float sin2ThetaT = eta * eta * fmaxf(0.0f, 1.0f - cosThetaI * cosThetaI);
+    if (sin2ThetaT >= 1.0f) {
+        return false;
+    }
+
+    float cosThetaT = sqrtf(fmaxf(0.0f, 1.0f - sin2ThetaT));
+    refracted = eta * incident + (eta * cosThetaI - cosThetaT) * normal;
+    return true;
+}
+
+__device__ void Material::SampleDielectric(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, Vec3f& weight, Sampler* sampler, int idx) const{
+    Vec3f incident = -wi.normalized();
+    Vec3f orientedNormal = normal.normalized();
+    float etaI = 1.0f;
+    float etaT = ior;
+
+    if (incident.dot(orientedNormal) > 0.0f) {
+        orientedNormal = -orientedNormal;
+        float temp = etaI;
+        etaI = etaT;
+        etaT = temp;
+    }
+
+    float cosThetaI = fmaxf(0.0f, -incident.dot(orientedNormal));
+    float fresnel = FresnelDielectric(cosThetaI, etaI, etaT);
+    float randomValue = sampler->Get1D(idx);
+
+    if (randomValue < fresnel) {
+        wo = Reflect(incident, orientedNormal).normalized();
+        pdf = fmaxf(fresnel, 1e-6f);
+        weight = Vec3f(1.0f, 1.0f, 1.0f);
+        return;
+    }
+
+    Vec3f refracted;
+    float eta = etaI / etaT;
+    if (!RefractDirection(incident, orientedNormal, eta, refracted)) {
+        wo = Reflect(incident, orientedNormal).normalized();
+        pdf = 1.0f;
+        weight = Vec3f(1.0f, 1.0f, 1.0f);
+        return;
+    }
+
+    wo = refracted.normalized();
+    pdf = fmaxf(1.0f - fresnel, 1e-6f);
+    weight = Lerp(Vec3f(1.0f, 1.0f, 1.0f), basecolor, transmission);
 }
 
 __device__ void Material::GeometrySchlickGGX(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& G) const{
@@ -132,6 +210,11 @@ __device__ Vec3f Material::EvaluatePBR(Vec3f& wi, Vec3f& normal, Vec3f& wo, Vec2
     float NdotL = max(normal.dot(wo), 0.0f);
     if (NdotL <= 0.0f || NdotV <= 0.0f) return Vec3f(0.f, 0.f, 0.f);
 
+    Vec3f albedo;
+    if(usingDiffuseTexture && diffuseTexture != nullptr)
+        albedo = diffuseTexture->Sample(uv(0), uv(1));
+    else albedo = basecolor;
+
     Vec3f h = (wi + wo).normalized();
     float NdotH = max(normal.dot(h), 0.0f);
     float VdotH = max(wi.dot(h), 0.0f);
@@ -139,9 +222,7 @@ __device__ Vec3f Material::EvaluatePBR(Vec3f& wi, Vec3f& normal, Vec3f& wo, Vec2
     // 1. Specular 
     float D, G;
     Vec3f F, F0;
-    if(usingDiffuseTexture && diffuseTexture != nullptr)
-        F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), diffuseTexture->Sample(uv(0), uv(1)), metallic);
-    else F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), basecolor, metallic);
+    F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), albedo, metallic);
     DistributionGGX(wi, normal, wo, D);
     GeometrySchlickGGX(wi, normal, wo, G);
     FresnelSchlick(wi, normal, wo, F, F0);
@@ -154,7 +235,7 @@ __device__ Vec3f Material::EvaluatePBR(Vec3f& wi, Vec3f& normal, Vec3f& wo, Vec2
     Vec3f kd = (Vec3f(1.0f, 1.0f, 1.0f) - ks) * (1.0f - metallic);
     Vec3f diffuse;
     if(wi.dot(normal) > 0.f && wo.dot(normal) > 0.f){
-        diffuse = kd.cwiseProduct(basecolor) / PI;
+        diffuse = kd.cwiseProduct(albedo) / PI;
     }else{
         diffuse = Vec3f(0.f, 0.f, 0.f);
     }
@@ -164,15 +245,18 @@ __device__ Vec3f Material::EvaluatePBR(Vec3f& wi, Vec3f& normal, Vec3f& wo, Vec2
 
 __device__ void Material::PdfPBR(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, Vec2f &uv) const{
     // P_spec
-    Vec3f F0;
+    Vec3f albedo;
     if(usingDiffuseTexture && diffuseTexture != nullptr)
-        F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), diffuseTexture->Sample(uv(0), uv(1)), metallic);
-    else F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), basecolor, metallic);
+        albedo = diffuseTexture->Sample(uv(0), uv(1));
+    else albedo = basecolor;
+
+    Vec3f F0;
+    F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), albedo, metallic);
     float NdotV = max(normal.dot(wi), 0.0f);
     Vec3f FAppro = F0 + (Vec3f(1.0f, 1.0f, 1.0f) - F0) * powf((1.0f - NdotV), 5.0f);
     
     float spec_strength = Luminance(FAppro);
-    float diff_strength = Luminance(basecolor) * (1.0f - metallic);
+    float diff_strength = Luminance(albedo) * (1.0f - metallic);
     float P_spec = fmaxf(spec_strength / (spec_strength + diff_strength), 1e-6f);
     P_spec = Clamp(0.01f, 0.99f, P_spec);
 
@@ -198,15 +282,18 @@ __device__ void Material::PdfPBR(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf
 
 __device__ void Material::SamplePBR(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, Sampler* sampler, int idx, Vec2f &uv) const{
     // P_spec
-    Vec3f F0;
+    Vec3f albedo;
     if(usingDiffuseTexture && diffuseTexture != nullptr)
-        F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), diffuseTexture->Sample(uv(0), uv(1)), metallic);
-    else F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), basecolor, metallic);
+        albedo = diffuseTexture->Sample(uv(0), uv(1));
+    else albedo = basecolor;
+
+    Vec3f F0;
+    F0 = Lerp(Vec3f(0.04f, 0.04f, 0.04f), albedo, metallic);
     float NdotV = max(normal.dot(wi), 0.0f);
     Vec3f FAppro = F0 + (Vec3f(1.0f, 1.0f, 1.0f) - F0) * powf((1.0f - NdotV), 5.0f);
     
     float spec_strength = Luminance(FAppro);
-    float diff_strength = Luminance(basecolor) * (1.0f - metallic);
+    float diff_strength = Luminance(albedo) * (1.0f - metallic);
     float P_spec = fmaxf(spec_strength / (spec_strength + diff_strength), 1e-6f);
     
     P_spec = Clamp(0.01f, 0.99f, P_spec);
@@ -239,7 +326,7 @@ __device__ void Material::SamplePBR(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& 
     PdfPBR(wi, normal, wo, pdf, uv);
 }
 
-__device__ Vec3f Material::EvaluateSpatialDiffusionProfile(Vec3f& wi, Vec3f& normal, Vec3f& hitPoint, Vec3f& outgoingPoint, Vec3f &outgoingNormal) const{
+__device__ Vec3f Material::EvaluateSpatialDiffusionProfile(Vec3f& wi, Vec3f& normal, Vec3f& hitPoint, Vec3f& outgoingPoint, Vec3f &outgoingNormal, Vec2f &uv) const{
     // profile
     float distance = (outgoingPoint - hitPoint).norm();
     if(distance < 1e-6f)
@@ -248,7 +335,10 @@ __device__ Vec3f Material::EvaluateSpatialDiffusionProfile(Vec3f& wi, Vec3f& nor
     BurleyDiffusionProfile(distance, profile(0), 0); 
     BurleyDiffusionProfile(distance, profile(1), 1); 
     BurleyDiffusionProfile(distance, profile(2), 2); 
-    return basecolor.cwiseProduct(profile) / PI;
+    Vec3f albedo = basecolor;
+    if(usingDiffuseTexture && diffuseTexture != nullptr)
+        albedo = diffuseTexture->Sample(uv(0), uv(1));
+    return albedo.cwiseProduct(profile) / PI;
 }
 
 __device__ void Material::SampleSpatialDiffusionProfile(Vec3f& wi, Vec3f& normal, Vec3f& hitPoint, Vec3f& outgoingPoint, Vec3f &outgoingNormal, float& pdf, Sampler* sampler, int idx, BVH *bvh) const{
@@ -317,19 +407,39 @@ __device__ void Material::PdfBurleyDiffusionProfile(float& distance, float& pdf)
 
 __device__ void Material::ProbeOutgongingPoint(Vec3f& hitPoint, Vec3f& normal, Vec3f& outgoingPoint, Vec3f &outgoingNormal, float distance, float angle, BVH *bvh) const{
     Vec3f tangent, bitangent;
-    CreateONB(normal, tangent, bitangent);
+    Vec3f probeNormal = normal.normalized();
+    CreateONB(probeNormal, tangent, bitangent);
     Vec3f offset = distance * (cosf(angle) * tangent + sinf(angle) * bitangent);
     outgoingPoint = hitPoint + offset;
-    Ray probeRay(hitPoint + normal * distance, -normal.normalized());
-    float tMin = 0.f, tMax = distance + 1; // short ray
-    IntersectionInfo isect;
-    if(bvh->IsIntersect(probeRay, isect, tMin, tMax)){
-        outgoingPoint = isect.hitPoint;
-        outgoingNormal = isect.normal;
+
+    float rayOffset = fmaxf(distance, 1e-3f);
+    float tMin = 1e-4f;
+    float tMax = fmaxf(distance * 2.f, 1e-2f);
+
+    Ray forwardProbe(outgoingPoint + probeNormal * rayOffset, -probeNormal);
+    Ray backwardProbe(outgoingPoint - probeNormal * rayOffset, probeNormal);
+    IntersectionInfo forwardHit, backwardHit;
+    bool hitForward = bvh->IsIntersect(forwardProbe, forwardHit, tMin, tMax);
+    bool hitBackward = bvh->IsIntersect(backwardProbe, backwardHit, tMin, tMax);
+
+    if(hitForward && hitBackward){
+        if(forwardHit.hitTime <= backwardHit.hitTime){
+            outgoingPoint = forwardHit.hitPoint;
+            outgoingNormal = forwardHit.normal;
+        }else{
+            outgoingPoint = backwardHit.hitPoint;
+            outgoingNormal = backwardHit.normal;
+        }
+    }else if(hitForward){
+        outgoingPoint = forwardHit.hitPoint;
+        outgoingNormal = forwardHit.normal;
+    }else if(hitBackward){
+        outgoingPoint = backwardHit.hitPoint;
+        outgoingNormal = backwardHit.normal;
     }else{
         // using the original hit point
         outgoingPoint = hitPoint;
-        outgoingNormal = normal;
+        outgoingNormal = probeNormal;
     }
 }
 
@@ -337,6 +447,12 @@ __device__ bool Material::IsLight() const{
     return type == LIGHT;
 }
 
+__device__ bool Material::IsDelta() const{
+    return type == DIELECTRIC;
+}
+
 void CreateMaterial(Material *hostMaterial, Material *deviceMaterial){
     cudaMemcpy(deviceMaterial, hostMaterial, sizeof(Material), cudaMemcpyHostToDevice);
 }
+
+

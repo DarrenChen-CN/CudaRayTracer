@@ -1,0 +1,63 @@
+{
+  "camera": {
+    "type": "pinhole",
+    "resolution": [1280, 1280],
+    "fov": 58.0,
+    "max_bounces": 5,
+    "rr": 0.7,
+    "spp": 8192,
+    "direction": [0.0, 0.0, -1.0],
+    "denoise": false
+  },
+  "textures": [
+    { "name": "MarryTexture", "path": "D:/code/projects/CudaRayTracer/Model/Characters/Marry/MC003_Kozakura_Mari.png" },
+    { "name": "CerberusTexture", "path": "D:/code/projects/CudaRayTracer/Model/Characters/cerberus/Cerberus_A.jpg" }
+  ],
+  "materials": [
+    { "name": "BackWall", "type": "diffuse", "basecolor": [0.92, 0.90, 0.87] },
+    { "name": "FloorWall", "type": "diffuse", "basecolor": [0.83, 0.82, 0.80] },
+    { "name": "LeftWallBlue", "type": "diffuse", "basecolor": [0.31, 0.42, 0.66] },
+    { "name": "RightWallCoral", "type": "diffuse", "basecolor": [0.72, 0.41, 0.33] },
+    { "name": "Light", "type": "light", "emission": [28.0, 28.0, 28.0] },
+
+    { "name": "PedestalStone", "type": "diffuse", "basecolor": [0.78, 0.76, 0.73] },
+    { "name": "PedestalSage", "type": "diffuse", "basecolor": [0.67, 0.72, 0.67] },
+    { "name": "PedestalRose", "type": "diffuse", "basecolor": [0.74, 0.69, 0.68] },
+    { "name": "PedestalPlaster", "type": "diffuse", "basecolor": [0.86, 0.84, 0.81] },
+
+    { "name": "MarryTextured", "type": "diffuse", "basecolor": [1.0, 1.0, 1.0], "diffuse_texture": "MarryTexture" },
+    { "name": "CerberusTextured", "type": "diffuse", "basecolor": [1.0, 1.0, 1.0], "diffuse_texture": "CerberusTexture" },
+
+    { "name": "DragonTerracotta", "type": "diffuse", "basecolor": [0.69, 0.39, 0.28] },
+    { "name": "BunnyMint", "type": "diffuse", "basecolor": [0.73, 0.84, 0.78] },
+    { "name": "BuddhaStone", "type": "diffuse", "basecolor": [0.84, 0.81, 0.74] },
+    { "name": "AccentBlue", "type": "diffuse", "basecolor": [0.27, 0.39, 0.74] }
+  ],
+  "objects": [
+    { "name": "light", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_1.obj", "translate": [0, -1, 0], "scale": [1, 1, 1], "rotate": [{ "rotateX": 0 }], "material": "Light" },
+    { "name": "floor", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_2.obj", "translate": [0, 0, 0], "scale": [1, 1, 1], "rotate": [{ "rotateX": 0 }], "material": "FloorWall" },
+    { "name": "ceiling", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_3.obj", "translate": [0, 0, 0], "scale": [1, 1, 1], "rotate": [{ "rotateX": 0 }], "material": "FloorWall" },
+    { "name": "back", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_4.obj", "translate": [0, 0, 0], "scale": [1, 1, 1], "rotate": [{ "rotateX": 0 }], "material": "BackWall" },
+    { "name": "right", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_5.obj", "translate": [0, 0, 0], "scale": [1, 1, 1], "rotate": [{ "rotateX": 0 }], "material": "RightWallCoral" },
+    { "name": "left", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_6.obj", "translate": [0, 0, 0], "scale": [1, 1, 1], "rotate": [{ "rotateX": 0 }], "material": "LeftWallBlue" },
+
+    { "name": "pedestal_dragon", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj", "translate": [54, 0, 122], "scale": [138, 38, 138], "rotate": [{ "rotateY": -8.0 }], "material": "PedestalRose" },
+    { "name": "pedestal_marry", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj", "translate": [210, 0, 274], "scale": [138, 84, 138], "rotate": [{ "rotateY": 0.0 }], "material": "PedestalPlaster" },
+    { "name": "pedestal_bunny", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj", "translate": [390, 0, 130], "scale": [110, 54, 110], "rotate": [{ "rotateY": 12.0 }], "material": "PedestalSage" },
+    { "name": "pedestal_cerberus", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj", "translate": [58, 0, 286], "scale": [102, 108, 102], "rotate": [{ "rotateY": 10.0 }], "material": "PedestalStone" },
+    { "name": "pedestal_buddha", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj", "translate": [396, 0, 302], "scale": [108, 72, 108], "rotate": [{ "rotateY": -10.0 }], "material": "PedestalStone" },
+    { "name": "accent_ico", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/icosahedron.obj", "translate": [258, 29, 148], "scale": [28, 28, 28], "rotate": [{ "rotateY": 22.0 }, { "rotateX": 18.0 }], "material": "AccentBlue" },
+
+    { "name": "dragon", "path": "D:/code/projects/CudaRayTracer/Model/Dragon/dragon.obj", "translate": [125.515, 75.35, 187.347], "scale": [132, 132, 132], "rotate": [{ "rotateY": 36.0 }], "material": "DragonTerracotta" },
+    { "name": "marry", "path": "D:/code/projects/CudaRayTracer/Model/Characters/Marry/Marry.obj", "translate": [278, 84.0, 302], "scale": [62, 62, 62], "rotate": [{ "rotateY": 188.0 }], "material": "MarryTextured" },
+    { "name": "bunny", "path": "D:/code/projects/CudaRayTracer/Model/Bunny/bunny144k.obj", "translate": [443.812, 70.455, 182.078], "scale": [32.5, 32.5, 32.5], "rotate": [{ "rotateY": -190.0 }], "material": "BunnyMint" },
+    { "name": "cerberus", "path": "D:/code/projects/CudaRayTracer/Model/Characters/cerberus/Cerberus.obj", "translate": [110, 155.2, 320], "scale": [100, 100, 100], "rotate": [{ "rotateY": -38.0 }], "material": "CerberusTextured" },
+    { "name": "buddha", "path": "D:/code/projects/CudaRayTracer/Model/buddha/buddha.obj", "translate": [438.593, 127.297, 367.424], "scale": [124, 124, 124], "rotate": [{ "rotateY": 18.0 }], "material": "BuddhaStone" }
+  ],
+  "lights": [
+    { "name": "Light0", "type": "area", "lightMeshName": "light", "material": "Light" }
+  ]
+}
+
+
+

@@ -1,6 +1,6 @@
 #pragma once
 #include "global.h"
-#include "triangle.h"
+#include "objloader.h"
 #include "bvh.h"
 #include "cuda_runtime.h"
 #include "sampler.h"
@@ -51,7 +51,7 @@ public:
     __host__ __device__ Scene(const std::string &sceneFilePath);
     __host__ __device__ ~Scene();
 
-    __host__ __device__ std::vector<Triangle> LoadObject(const std::string &objectFilePath, int id, Mat4f transform = Mat4f::Identity(), Mat4f transformInv = Mat4f::Identity());
+    __host__ std::vector<LoadedOBJMesh> LoadObject(const std::string &objectFilePath, Mat4f transform = Mat4f::Identity(), Mat4f transformInv = Mat4f::Identity());
     __host__ __device__ void BuildBVH();
     __host__ __device__ bool ParseSceneFile(const std::string &sceneFilePath);
     __host__ __device__ bool ParseCamera(const json& cameraJson);

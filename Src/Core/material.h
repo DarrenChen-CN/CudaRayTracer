@@ -7,6 +7,7 @@ enum MaterialType {
     LIGHT,
     DIFFUSE,
     PBR,
+    DIELECTRIC,
     SUBSURFACE
 };
 
@@ -35,9 +36,14 @@ public:
     __device__ void FresnelSchlick(Vec3f& wi, Vec3f& normal, Vec3f& wo, Vec3f& F, Vec3f& F0) const;
     __device__ void Fresnel(Vec3f& wi, Vec3f& normal, Vec3f& F) const;
     __device__ void GeometrySchlickGGX(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& G) const;
+    __device__ void SampleDielectric(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, Vec3f& weight, Sampler* sampler, int idx) const;
+
+    // Dielectric
+    __device__ float FresnelDielectric(float cosThetaI, float etaI, float etaT) const;
+    __device__ bool RefractDirection(const Vec3f& incident, const Vec3f& normal, float eta, Vec3f& refracted) const;
 
     // Subsurface Scattering
-    __device__ Vec3f EvaluateSpatialDiffusionProfile(Vec3f& wi, Vec3f& normal, Vec3f& hitPoint, Vec3f& outgoingPoint, Vec3f &outgoingNormal) const;
+    __device__ Vec3f EvaluateSpatialDiffusionProfile(Vec3f& wi, Vec3f& normal, Vec3f& hitPoint, Vec3f& outgoingPoint, Vec3f &outgoingNormal, Vec2f &uv) const;
     __device__ void SampleSpatialDiffusionProfile(Vec3f& wi, Vec3f& normal, Vec3f& hitPoint, Vec3f& outgoingPoint, Vec3f &outgoingNormal, float& pdf, Sampler* sampler, int idx, BVH *bvh) const; // sample outgoint point based on diffusion profile
     __device__ void PdfSpatialDiffusionProfile(Vec3f& wi, Vec3f& normal, Vec3f& hitPoint, Vec3f& outgoingPoint, float& pdf) const;
     __device__ void SampleBurleyDiffusionProfile(float &distance, float &pdf, Sampler* sampler, int idx) const; // sample r based on R(r)
@@ -46,6 +52,7 @@ public:
     __device__ void ProbeOutgongingPoint(Vec3f& hitPoint, Vec3f& normal, Vec3f& outgoingPoint, Vec3f &outgoingNormal, float distance, float angle, BVH *bvh) const;
 
     __device__ bool IsLight() const;
+    __device__ bool IsDelta() const;
 
     std::string name;
     MaterialType type;
@@ -54,6 +61,7 @@ public:
     Vec3f basecolor = Vec3f(0.f, 0.f, 0.f); // for pbr
     float roughness = 0.5f;
     float metallic = 0.0f;
+    float transmission = 1.0f;
 
     Vec3f scatterDistance = Vec3f(0.f, 0.f, 0.f); // for subsurface scattering
     float ior = 1.f;
@@ -63,3 +71,4 @@ public:
 };
 
 void CreateMaterial(Material *hostMaterial, Material *deviceMaterial);
+

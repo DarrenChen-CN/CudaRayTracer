@@ -1,0 +1,296 @@
+{
+    "camera": {
+        "type": "pinhole",
+        "resolution": [
+            1600,
+            1200
+        ],
+        "fov": 20,
+        "max_bounces": 8,
+        "rr": 0.7,
+        "spp": 8192,
+        "direction": [
+            0,
+            0,
+            -1
+        ],
+        "denoise": false
+    },
+    "textures": [],
+    "materials": [
+        {
+            "name": "BlackBackdrop",
+            "type": "diffuse",
+            "basecolor": [
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "name": "DarkStage",
+            "type": "diffuse",
+            "basecolor": [
+                0.03,
+                0.03,
+                0.04
+            ]
+        },
+        {
+            "name": "DarkPedestal",
+            "type": "diffuse",
+            "basecolor": [
+                0.07,
+                0.07,
+                0.08
+            ]
+        },
+        {
+            "name": "ShowcaseLight",
+            "type": "light",
+            "emission": [
+                200,
+                200,
+                200
+            ]
+        },
+        {
+            "name": "JadeBunny",
+            "type": "subsurface",
+            "basecolor": [
+                0.72,
+                0.9,
+                0.76
+            ],
+            "scatter_distance": [
+                6,
+                8.5,
+                5.5
+            ],
+            "ior": 1.61,
+            "roughness": 0.08
+        },
+        {
+            "name": "RoseBuddha",
+            "type": "subsurface",
+            "basecolor": [
+                0.92,
+                0.66,
+                0.78
+            ],
+            "scatter_distance": [
+                16,
+                10,
+                7
+            ],
+            "ior": 1.45,
+            "roughness": 0.18
+        },
+        {
+            "name": "VioletDragon",
+            "type": "subsurface",
+            "basecolor": [
+                0.63,
+                0.49,
+                0.89
+            ],
+            "scatter_distance": [
+                12,
+                9,
+                6.5
+            ],
+            "ior": 1.5,
+            "roughness": 0.12
+        }
+    ],
+    "objects": [
+        {
+            "name": "backdrop",
+            "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane_uv_double.obj",
+            "translate": [
+                0,
+                0,
+                420
+            ],
+            "scale": [
+                620,
+                430,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0
+                }
+            ],
+            "material": "BlackBackdrop"
+        },
+        {
+            "name": "floor",
+            "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane_uv_double.obj",
+            "translate": [
+                0,
+                0,
+                820
+            ],
+            "scale": [
+                620,
+                840,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": -90
+                }
+            ],
+            "material": "DarkStage"
+        },
+        {
+            "name": "light_plane",
+            "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane_uv_double.obj",
+            "translate": [
+                180,
+                930,
+                170
+            ],
+            "scale": [
+                260,
+                220,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 90
+                }
+            ],
+            "material": "ShowcaseLight"
+        },
+        {
+            "name": "pedestal_left",
+            "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj",
+            "translate": [
+                90,
+                0,
+                220
+            ],
+            "scale": [
+                120,
+                55,
+                120
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "DarkPedestal"
+        },
+        {
+            "name": "pedestal_center",
+            "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj",
+            "translate": [
+                240,
+                0,
+                240
+            ],
+            "scale": [
+                130,
+                72,
+                130
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "DarkPedestal"
+        },
+        {
+            "name": "pedestal_right",
+            "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj",
+            "translate": [
+                390,
+                0,
+                220
+            ],
+            "scale": [
+                120,
+                60,
+                120
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "DarkPedestal"
+        },
+        {
+            "name": "bunny",
+            "path": "D:/code/projects/CudaRayTracer/Model/Bunny/bunny144k.obj",
+            "translate": [
+                150.329,
+                72.214,
+                285.716
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": -200
+                }
+            ],
+            "material": "JadeBunny"
+        },
+        {
+            "name": "buddha",
+            "path": "D:/code/projects/CudaRayTracer/Model/buddha/buddha.obj",
+            "translate": [
+                303.654,
+                124.622,
+                307.641
+            ],
+            "scale": [
+                118,
+                118,
+                118
+            ],
+            "rotate": [
+                {
+                    "rotateY": 14
+                }
+            ],
+            "material": "RoseBuddha"
+        },
+        {
+            "name": "dragon",
+            "path": "D:/code/projects/CudaRayTracer/Model/Dragon/dragon.obj",
+            "translate": [
+                452.56,
+                93.389,
+                276.63
+            ],
+            "scale": [
+                118,
+                118,
+                118
+            ],
+            "rotate": [
+                {
+                    "rotateY": 34
+                }
+            ],
+            "material": "VioletDragon"
+        }
+    ],
+    "lights": [
+        {
+            "name": "Light0",
+            "type": "area",
+            "lightMeshName": "light_plane",
+            "material": "ShowcaseLight"
+        }
+    ]
+}

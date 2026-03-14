@@ -58,13 +58,12 @@ struct RenderBuffer{
 };
 
 struct DenoiseParam{
-    // float2 *moments;
-    // float *variance;
-    float2 *directMoments;
-    float2 *indirectMoments;
-    int *historyLength;
+    float2 *directMoments[2];
+    float2 *indirectMoments[2];
+    int *historyLength[2];
+    int currentTemporalBufferIndex = 0;
     int maxHistoryLength = 24;
-    float sigmaLight = 10.f;
+    float sigmaLight = 20.f;
     float sigmaNormal = 128.f;
     float sigmaDepth = 1.f;
 };
@@ -87,6 +86,23 @@ cudaTextureObject_t CreateTextureObject(cudaArray_t cuArray, cudaTextureAddressM
     return texObj;
 }
 
+__device__ __forceinline__ int BufferYToGBufferY(int bufferY, int height)
+{
+    return bufferY;
+}
+
+__device__ __forceinline__ Vec2f BufferIndexToGBufferSamplePos(int index, int width, int height)
+{
+    int x = index % width;
+    int y = index / width;
+    return Vec2f((float)x + 0.5f, (float)BufferYToGBufferY(y, height) + 0.5f);
+}
+
+__device__ __forceinline__ int GBufferPixelToBufferIndex(int x, int y, int width, int height)
+{
+    return y * width + x;
+}
+
 __global__ void GenerateRayKernel(RenderSegment* segments, RenderParam renderParam, CameraParam cameraParam)
 {
     int width = renderParam.width, height = renderParam.height;
@@ -105,6 +121,7 @@ __global__ void GenerateRayKernel(RenderSegment* segments, RenderParam renderPar
     segments[idx].indirectColor = Vec3f(0.0f, 0.0f, 0.0f);
     segments[idx].weight = Vec3f(1.0f, 1.0f, 1.0f);
     segments[idx].firstBounce = true; // Initialize first bounce flag
+    segments[idx].specularBounce = false;
 }
 
 __device__ void AccumulateColor(int index, Vec3f color, float *accumulator)
@@ -172,7 +189,11 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
 
     Material &material = materials[meshData[info.meshID].materialID];
     Vec3f hitPoint = info.hitPoint;
-    Vec3f hitNormal = info.normal;
+    Vec3f geomNormal = info.normal.normalized();
+    Vec3f hitNormal = info.shadingNormal.squaredNorm() > eps ? info.shadingNormal.normalized() : geomNormal;
+    if (hitNormal.dot(geomNormal) < 0.f) {
+        hitNormal = -hitNormal;
+    }
     Vec2f uv = info.texCoord;
     Vec3f wo = -segment.ray.direction; // wo为p -> eye方向, wi为p -> light方向
 
@@ -180,76 +201,94 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
 
     if(material.IsLight()){
         if(segment.firstBounce){
-            // segment.color += material.ke;
             segment.directColor+= material.ke;
             segment.firstBounce = false;
             segment.remainingBounces = 0;
             segmentValidFlags[idx] = 0;
             return ;
+        }else if(segment.specularBounce){
+            segment.indirectColor += segment.weight.cwiseProduct(material.ke);
         }else{
-            // MIS
             int lightID = meshData[info.meshID].lightID;
             Light *light = lightManager -> GetLight(lightID);
             float pdfLight;
             light -> SampleSolidAnglePDF(segment.ray, info.hitPoint, info.normal, pdfLight);
+            if (lightManager->numLights > 0) {
+                pdfLight *= 1.0f / lightManager->numLights;
+            }
 
-            // MIS weight
             float brdfMisWeight = MISWeight(segment.pdfBrdf, pdfLight, 2);
             segment.indirectColor += segment.weight.cwiseProduct(material.ke) * brdfMisWeight;
         }
+        segment.remainingBounces = 0;
+        segmentValidFlags[idx] = 0;
+        return;
     }
 
-    // Sample light(NEE)
-    float selectLightPDF;
-    Light *light = lightManager -> SampleLight(sampler, idx, selectLightPDF);
-    if(light != nullptr){
-        float sampleLightPointPDF;
-        TriangleSampleInfo sampleLightPointInfo;
-        light -> SamplePoint(triangles, sceneBounds, sampleLightPointInfo, sampleLightPointPDF, sampler, idx);
-        
-        bool visible = light -> Visible(info, sampleLightPointInfo, bvh);
-        if(visible){
-            Vec3f dirWi = (sampleLightPointInfo.position - hitPoint).normalized();
-            float pdfLight;
-            Ray sampleLightRay;
-            sampleLightRay.origin = hitPoint;
-            sampleLightRay.direction = dirWi;
-            light -> SampleSolidAnglePDF(sampleLightRay, sampleLightPointInfo.position, sampleLightPointInfo.normal, pdfLight);
-            pdfLight *= selectLightPDF;
-            float cosTheta = hitNormal.dot(dirWi);
-            Vec3f dirBrdf = material.Evaluate(wo, hitNormal, dirWi, uv);
-            Vec3f dirL = light -> Emission(dirWi).cwiseProduct(dirBrdf) * cosTheta / pdfLight;
+    if(material.IsDelta()){
+        Vec3f deltaWi;
+        Vec3f deltaWeight;
+        float deltaPdf = 1.0f;
+        material.SampleDielectric(wo, hitNormal, deltaWi, deltaPdf, deltaWeight, sampler, idx);
+        segment.pdfBrdf = deltaPdf;
+        segment.ray.origin = hitPoint + deltaWi * 1e-4f;
+        segment.ray.direction = deltaWi;
+        segment.weight = segment.weight.cwiseProduct(deltaWeight);
 
-            // MIS weight
-            float pdfBrdf;
-            material.Pdf(wo, hitNormal, dirWi, pdfBrdf, uv);
-            float lightMisWeight = MISWeight(pdfLight, pdfBrdf, 2);
-            if(segment.firstBounce){
-                segment.directColor += lightMisWeight * segment.weight.cwiseProduct(dirL);
-            }else{
-                segment.indirectColor += lightMisWeight * segment.weight.cwiseProduct(dirL);
-            }
-            Vec3f temp = lightMisWeight * segment.weight.cwiseProduct(dirL);
+        float p = sampler -> Get1D(idx);
+        if(p > rr){
+            segment.remainingBounces = 0;
+            segmentValidFlags[idx] = 0;
+            return ;
         }
+
+        segment.weight /= rr;
+        segment.firstBounce = false;
+        segment.specularBounce = true;
+        segmentValidFlags[idx] = 1;
+        return;
     }
-    
-    // return;
 
-    // indir
-    Vec3f indirWi;
-    float indirWiPdf;
-    material.Sample(wo, hitNormal, indirWi, indirWiPdf, sampler, idx, uv);
-    brdf = material.Evaluate(wo, hitNormal, indirWi, uv);
-    segment.pdfBrdf = indirWiPdf;
-    segment.ray.origin = hitPoint;
-    segment.ray.direction = indirWi;
+    if(material.type != SUBSURFACE){
+        float selectLightPDF;
+        Light *light = lightManager -> SampleLight(sampler, idx, selectLightPDF);
+        if(light != nullptr){
+            float sampleLightPointPDF;
+            TriangleSampleInfo sampleLightPointInfo;
+            light -> SamplePoint(triangles, sceneBounds, sampleLightPointInfo, sampleLightPointPDF, sampler, idx);
+            
+            bool visible = light -> Visible(info, sampleLightPointInfo, bvh);
+            if(visible){
+                Vec3f dirWi = (sampleLightPointInfo.position - hitPoint).normalized();
+                float pdfLight;
+                Ray sampleLightRay;
+                sampleLightRay.origin = hitPoint;
+                sampleLightRay.direction = dirWi;
+                light -> SampleSolidAnglePDF(sampleLightRay, sampleLightPointInfo.position, sampleLightPointInfo.normal, pdfLight);
+                pdfLight *= selectLightPDF;
+                float cosTheta = hitNormal.dot(dirWi);
+                Vec3f dirBrdf = material.Evaluate(wo, hitNormal, dirWi, uv);
+                Vec3f dirL = light -> Emission(dirWi).cwiseProduct(dirBrdf) * cosTheta / pdfLight;
 
-    // compute F in
-    Vec3f FIn;
-    material.Fresnel(wo, hitNormal, FIn);
-    float Ftransmit = 1 - FIn(0);
-    float rTransmission = sampler -> Get1D(idx);
-    if(material.type != SUBSURFACE || rTransmission >= Ftransmit){
+                float pdfBrdf;
+                material.Pdf(wo, hitNormal, dirWi, pdfBrdf, uv);
+                float lightMisWeight = MISWeight(pdfLight, pdfBrdf, 2);
+                if(segment.firstBounce){
+                    segment.directColor += lightMisWeight * segment.weight.cwiseProduct(dirL);
+                }else{
+                    segment.indirectColor += lightMisWeight * segment.weight.cwiseProduct(dirL);
+                }
+            }
+        }
+
+        Vec3f indirWi;
+        float indirWiPdf;
+        material.Sample(wo, hitNormal, indirWi, indirWiPdf, sampler, idx, uv);
+        brdf = material.Evaluate(wo, hitNormal, indirWi, uv);
+        segment.pdfBrdf = indirWiPdf;
+        segment.ray.origin = hitPoint;
+        segment.ray.direction = indirWi;
+
         float indirCosTheta = hitNormal.dot(indirWi);
         if(!(indirWiPdf < eps || indirCosTheta < 0)){
             segment.weight = segment.weight.cwiseProduct(brdf) * indirCosTheta / indirWiPdf;
@@ -259,63 +298,119 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
             return ;
         }
     }else{
-        // Subsurface scattering
-        // Sample a point inside the surface
-        Vec3f outgoingPoint, outgoingNormal, outgoingDir;
-        float spatialPdf, outgoingDirPdf;
-        material.SampleSpatialDiffusionProfile(wo, hitNormal, hitPoint, outgoingPoint, outgoingNormal, spatialPdf, sampler, idx, bvh);
-        // update weight for subsurface
-        segment.weight = segment.weight.cwiseProduct(material.basecolor);
-        
-        // NEE
-        float selectLightPDF;
-        Light *light = lightManager -> SampleLight(sampler, idx, selectLightPDF);
-        if(light != nullptr){
-            float sampleLightPointPDF;
-            TriangleSampleInfo sampleLightPointInfo;
-            light -> SamplePoint(triangles, sceneBounds, sampleLightPointInfo, sampleLightPointPDF, sampler, idx);
-            IntersectionInfo tempInfo;
-            tempInfo.hitPoint = outgoingPoint;
-            tempInfo.normal = outgoingNormal;
-            bool visible = light -> Visible(tempInfo, sampleLightPointInfo, bvh);
-            if(visible){
-                Vec3f dirWi = (sampleLightPointInfo.position - outgoingPoint).normalized();
-                Vec3f FNee;
-                material.Fresnel(dirWi, outgoingNormal, FNee);
-                float FtransmitOut = 1 - FNee(0);
-                float pdfLight;
-                Ray sampleLightRay;
-                sampleLightRay.origin = outgoingPoint;
-                sampleLightRay.direction = dirWi;
-                light -> SampleSolidAnglePDF(sampleLightRay, sampleLightPointInfo.position, sampleLightPointInfo.normal, pdfLight);
-                pdfLight *= selectLightPDF;
-                float cosTheta = outgoingNormal.dot(dirWi);
-                Vec3f dirBrdf = material.Evaluate(dirWi, outgoingNormal, dirWi, uv);
-                Vec3f dirL = light -> Emission(dirWi).cwiseProduct(dirBrdf) * cosTheta / pdfLight;
+        Vec3f FIn;
+        material.Fresnel(wo, hitNormal, FIn);
+        float reflectProb = Clamp(0.02f, 0.98f, FIn(0));
+        float transmitProb = fmaxf(1.f - reflectProb, eps);
+        float eventSample = sampler -> Get1D(idx);
 
-                // MIS weight
-                float pdfBrdf;
-                material.Pdf(wo, outgoingNormal, dirWi, pdfBrdf, uv);
-                float lightMisWeight = MISWeight(pdfLight, pdfBrdf, 2);
-                if(segment.firstBounce){
-                    segment.directColor += lightMisWeight * segment.weight.cwiseProduct(dirL) * FtransmitOut;
-                }else{
-                    segment.indirectColor += lightMisWeight * segment.weight.cwiseProduct(dirL) * FtransmitOut;
+        if(eventSample < reflectProb){
+            Vec3f reflectedDir;
+            if (material.roughness > 1e-3f) {
+                float r1 = sampler->Get1D(idx);
+                float r2 = sampler->Get1D(idx);
+                float a = fmaxf(material.roughness * material.roughness, 0.02f);
+                float phi = 2.0f * PI * r1;
+                float cosTheta = sqrtf((1.0f - r2) / (1.0f + (a * a - 1.0f) * r2));
+                float sinTheta = sqrtf(fmaxf(0.0f, 1.0f - cosTheta * cosTheta));
+                Vec3f hLocal(sinTheta * cosf(phi), sinTheta * sinf(phi), cosTheta);
+                Vec3f hWorld = LocalToWorld(hLocal, hitNormal);
+                reflectedDir = Reflect(-wo, hWorld).normalized();
+                if (reflectedDir.dot(hitNormal) <= 0.0f) {
+                    reflectedDir = Reflect(-wo, hitNormal).normalized();
+                }
+            } else {
+                reflectedDir = Reflect(-wo, hitNormal).normalized();
+            }
+            segment.ray.origin = hitPoint + reflectedDir * 1e-4f;
+            segment.ray.direction = reflectedDir;
+            segment.weight = segment.weight.cwiseProduct(FIn) / reflectProb;
+            segment.pdfBrdf = 1.0f;
+            float p = sampler -> Get1D(idx);
+            if(p > rr){
+                segment.remainingBounces = 0;
+                segmentValidFlags[idx] = 0;
+                return ;
+            }
+
+            segment.weight /= rr;
+            segment.firstBounce = false;
+            segment.specularBounce = true;
+            segmentValidFlags[idx] = 1;
+            return;
+        }else{
+            Vec3f outgoingPoint, outgoingNormal, outgoingDir;
+            float spatialPdf, outgoingDirPdf;
+            material.SampleSpatialDiffusionProfile(wo, geomNormal, hitPoint, outgoingPoint, outgoingNormal, spatialPdf, sampler, idx, bvh);
+            if(spatialPdf < eps){
+                segment.remainingBounces = 0;
+                segmentValidFlags[idx] = 0;
+                return ;
+            }
+
+            Vec3f spatialProfile = material.EvaluateSpatialDiffusionProfile(wo, geomNormal, hitPoint, outgoingPoint, outgoingNormal, uv);
+            segment.weight = segment.weight.cwiseProduct(Vec3f(1.f, 1.f, 1.f) - FIn).cwiseProduct(spatialProfile) / (transmitProb * spatialPdf);
+
+            Vec3f woSubsurface = hitPoint - outgoingPoint;
+            if(woSubsurface.norm() < eps){
+                woSubsurface = wo;
+            }else{
+                woSubsurface = woSubsurface.normalized();
+            }
+            
+            float selectLightPDF;
+            Light *light = lightManager -> SampleLight(sampler, idx, selectLightPDF);
+            if(light != nullptr){
+                float sampleLightPointPDF;
+                TriangleSampleInfo sampleLightPointInfo;
+                light -> SamplePoint(triangles, sceneBounds, sampleLightPointInfo, sampleLightPointPDF, sampler, idx);
+                IntersectionInfo tempInfo;
+                tempInfo.hitPoint = outgoingPoint;
+                tempInfo.normal = outgoingNormal;
+                bool visible = light -> Visible(tempInfo, sampleLightPointInfo, bvh);
+                if(visible){
+                    Vec3f dirWi = (sampleLightPointInfo.position - outgoingPoint).normalized();
+                    Vec3f FNee;
+                    material.Fresnel(dirWi, outgoingNormal, FNee);
+                    float FtransmitOut = 1 - FNee(0);
+                    float pdfLight;
+                    Ray sampleLightRay;
+                    sampleLightRay.origin = outgoingPoint;
+                    sampleLightRay.direction = dirWi;
+                    light -> SampleSolidAnglePDF(sampleLightRay, sampleLightPointInfo.position, sampleLightPointInfo.normal, pdfLight);
+                    pdfLight *= selectLightPDF;
+                    float cosTheta = outgoingNormal.dot(dirWi);
+                    if(cosTheta > 0.f && pdfLight > eps){
+                        Vec3f dirBrdf = Vec3f(1.f, 1.f, 1.f) / PI;
+                        Vec3f dirL = light -> Emission(dirWi).cwiseProduct(dirBrdf) * cosTheta / pdfLight;
+                        float pdfBrdf = cosTheta / PI;
+                        float lightMisWeight = MISWeight(pdfLight, pdfBrdf, 2);
+                        if(segment.firstBounce){
+                            segment.directColor += lightMisWeight * segment.weight.cwiseProduct(dirL) * FtransmitOut;
+                        }else{
+                            segment.indirectColor += lightMisWeight * segment.weight.cwiseProduct(dirL) * FtransmitOut;
+                        }
+                    }
                 }
             }
+
+            material.SampleDiffuse(woSubsurface, outgoingNormal, outgoingDir, outgoingDirPdf, sampler, idx, uv);
+            float cosOut = outgoingNormal.dot(outgoingDir);
+            Vec3f FOut;
+            material.Fresnel(outgoingDir, outgoingNormal, FOut);
+            float FtransmitOut = 1 - FOut(0);
+
+            if(outgoingDirPdf < eps || cosOut < 0.f){
+                segment.remainingBounces = 0;
+                segmentValidFlags[idx] = 0;
+                return ;
+            }
+
+            segment.ray.origin = outgoingPoint + outgoingNormal * 1e-4f;
+            segment.ray.direction = outgoingDir;
+            segment.weight *= FtransmitOut;
+            segment.pdfBrdf = outgoingDirPdf;
         }
-
-        material.Sample(wo, outgoingNormal, outgoingDir, outgoingDirPdf, sampler, idx, uv);
-        // compute F out
-        Vec3f FOut;
-        material.Fresnel(outgoingDir, outgoingNormal, FOut);
-        float FtransmitOut = 1 - FOut(0);
-
-        // update weight and ray
-        segment.ray.origin = outgoingPoint;
-        segment.ray.direction = outgoingDir;
-        segment.weight = segment.weight * FtransmitOut;
-        segment.pdfBrdf = outgoingDirPdf;
     }
     
 
@@ -331,6 +426,7 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
     
 
     segment.firstBounce = false;
+    segment.specularBounce = false;
     segmentValidFlags[idx] = 1;
 
 }
@@ -353,92 +449,86 @@ __global__ void ShadingKernel(RenderSegment *segments, RenderParam renderParam, 
     segments[idx].remainingBounces--;
 }
 
-__device__ bool GetLastFramePos(int index, CameraParam cameraParam, RenderParam renderParam, RenderBuffer currentBuffer, RenderBuffer lastBuffer, GBuffer currentGBuffer, GBuffer lastGBuffer, Vec2f &pixelPos){
-    // Get world position from current frame's gbuffer
+__device__ bool GetLastFramePos(int index, RenderParam renderParam, GBuffer currentGBuffer, GBuffer lastGBuffer, Vec2f &pixelPos){
     int width = renderParam.width, height = renderParam.height;
-    float4 positionTriID = tex2D<float4>(currentGBuffer.cudaTexObjPositionTriID, (index % width), index / width);
-    ushort4 baryMeshID = tex2D<ushort4>(currentGBuffer.cudaTexObjBaryMeshID, (index % width), index / width);
-    ushort4 normalMatID = tex2D<ushort4>(currentGBuffer.cudaTexObjNormalMatID, (index % width), index / width);
-    float4 motionDepth = tex2D<float4>(currentGBuffer.cudaTexObjMotionDepth, (index % width), index / width);
+    Vec2f currentPixelPos = BufferIndexToGBufferSamplePos(index, width, height);
+    float4 positionTriID = tex2D<float4>(currentGBuffer.cudaTexObjPositionTriID, currentPixelPos(0), currentPixelPos(1));
+    ushort4 baryMeshID = tex2D<ushort4>(currentGBuffer.cudaTexObjBaryMeshID, currentPixelPos(0), currentPixelPos(1));
+    ushort4 normalMatID = tex2D<ushort4>(currentGBuffer.cudaTexObjNormalMatID, currentPixelPos(0), currentPixelPos(1));
+    float4 motionDepth = tex2D<float4>(currentGBuffer.cudaTexObjMotionDepth, currentPixelPos(0), currentPixelPos(1));
     Vec3f position = Vec3f(positionTriID.x, positionTriID.y, positionTriID.z);
     int meshID = baryMeshID.w;
     Vec3f normal = Vec3f(normalMatID.x / 65535.0f * 2.f - 1.f, normalMatID.y / 65535.0f * 2.f - 1.f, normalMatID.z / 65535.0f * 2.f - 1.f);
     float depth = motionDepth.z;
     float dz = motionDepth.w;
 
-    Vec2i motionVec = Vec2i((motionDepth.x) * renderParam.width * 0.5f, (motionDepth.y) * renderParam.height * 0.5f);
-    Vec2f currentPixelPos = Vec2f(index % width, index / width);
+    Vec2f motionVec = Vec2f(motionDepth.x * width * 0.5f, motionDepth.y * height * 0.5f);
     pixelPos = Vec2f(currentPixelPos(0) - motionVec(0), currentPixelPos(1) - motionVec(1));
-    if(pixelPos(0) < 0 || pixelPos(0) >= renderParam.width || pixelPos(1) < 0 || pixelPos(1) >= renderParam.height){
+    if(pixelPos(0) < 0.5f || pixelPos(0) >= width - 0.5f || pixelPos(1) < 0.5f || pixelPos(1) >= height - 0.5f){
         return false;
     }
 
+    int lastPixelX = max(0, min(width - 1, (int)floorf(pixelPos(0))));
+    int lastPixelY = max(0, min(height - 1, (int)floorf(pixelPos(1))));
+    Vec2f lastPixelPos = Vec2f((float)lastPixelX + 0.5f, (float)lastPixelY + 0.5f);
+
     // get last frame gbuffer info
-    float4 lastPositionTriID = tex2D<float4>(lastGBuffer.cudaTexObjPositionTriID, pixelPos(0), pixelPos(1));
-    ushort4 lastBaryMeshID = tex2D<ushort4>(lastGBuffer.cudaTexObjBaryMeshID, pixelPos(0), pixelPos(1));
-    ushort4 lastNormalMatID = tex2D<ushort4>(lastGBuffer.cudaTexObjNormalMatID, pixelPos(0), pixelPos(1));
-    float4 lastMotionDepth = tex2D<float4>(lastGBuffer.cudaTexObjMotionDepth, pixelPos(0), pixelPos(1));
+    float4 lastPositionTriID = tex2D<float4>(lastGBuffer.cudaTexObjPositionTriID, lastPixelPos(0), lastPixelPos(1));
+    ushort4 lastBaryMeshID = tex2D<ushort4>(lastGBuffer.cudaTexObjBaryMeshID, lastPixelPos(0), lastPixelPos(1));
+    ushort4 lastNormalMatID = tex2D<ushort4>(lastGBuffer.cudaTexObjNormalMatID, lastPixelPos(0), lastPixelPos(1));
+    float4 lastMotionDepth = tex2D<float4>(lastGBuffer.cudaTexObjMotionDepth, lastPixelPos(0), lastPixelPos(1));
     int lastMeshID = lastBaryMeshID.w;
+    int materialID = normalMatID.w;
+    int lastMaterialID = lastNormalMatID.w;
     Vec3f lastNormal = Vec3f(lastNormalMatID.x / 65535.0f * 2.f - 1.f, lastNormalMatID.y / 65535.0f * 2.f - 1.f, lastNormalMatID.z / 65535.0f * 2.f - 1.f);
     float lastDepth = lastMotionDepth.z;
     Vec3f lastPosition = Vec3f(lastPositionTriID.x, lastPositionTriID.y, lastPositionTriID.z);
 
     float dotNormal = normal.dot(lastNormal);
-    float depthDiff = fabs(position(2) - lastPosition(2));
+    float depthDiff = fabsf(depth - lastDepth);
     float normalThreshold = 0.9;
     float pixelDistance = sqrtf(motionVec(0) * motionVec(0) + motionVec(1) * motionVec(1));
-    float depthThreshold = dz * (pixelDistance + 1.f) + 0.1 * depth;
+    float depthThreshold = fmaxf(dz, lastMotionDepth.w) * (pixelDistance + 1.f) + 0.1f * fmaxf(depth, lastDepth);
 
-    // if(meshID != lastMeshID){
-    //     // sample 3 * 3 neighborhood
-    //     int dx[] = {-1, 0, 1};
-    //     int dy[] = {-1, 0, 1};
-    //     int sameCount = 0;
-    //     for(int i = 0; i < 3; i++){
-    //         for(int j = 0; j < 3; j++){
-    //             Vec2f neighborPos = Vec2f(pixelPos(0) + dx[i], pixelPos(1) + dy[j]);
-    //             if(neighborPos(0) < 0 || neighborPos(0) >= renderParam.width || neighborPos(1) < 0 || neighborPos(1) >= renderParam.height){
-    //                 continue;
-    //             }
-    //             ushort4 neighborBaryMeshID = tex2D<ushort4>(lastGBuffer.cudaTexObjBaryMeshID, neighborPos(0), neighborPos(1));
-    //             int neighborMeshID = neighborBaryMeshID.w;
-    //             if(neighborMeshID == meshID){
-    //                 sameCount++;
-    //             }   
-    //         }
-    //     }
-    //     if(sameCount < 4)
-    //         return false;
-    // }
-
-    if(meshID != lastMeshID || dotNormal < normalThreshold || depthDiff > depthThreshold){
+    if(meshID != lastMeshID || materialID != lastMaterialID || dotNormal < normalThreshold || depthDiff > depthThreshold){
         return false;
     }
 
+    pixelPos = lastPixelPos;
     return true;
 }
 
 __device__ void TemporalDenoising(int index, RenderBuffer currentBuffer, RenderBuffer lastBuffer, DenoiseParam denoiseParam, CameraParam cameraParam, RenderParam renderParam, GBuffer currentGBuffer, GBuffer lastGBuffer, bool firstFrame)
 {
+    float2 *currentDirectMoments = denoiseParam.directMoments[denoiseParam.currentTemporalBufferIndex];
+    float2 *currentIndirectMoments = denoiseParam.indirectMoments[denoiseParam.currentTemporalBufferIndex];
+    int *currentHistoryLength = denoiseParam.historyLength[denoiseParam.currentTemporalBufferIndex];
+    float2 *lastDirectMomentsBuffer = denoiseParam.directMoments[1 - denoiseParam.currentTemporalBufferIndex];
+    float2 *lastIndirectMomentsBuffer = denoiseParam.indirectMoments[1 - denoiseParam.currentTemporalBufferIndex];
+    int *lastHistoryLengthBuffer = denoiseParam.historyLength[1 - denoiseParam.currentTemporalBufferIndex];
+
     if(firstFrame){
-        // Initialize
         float directLuminance = Luminance(Vec3f(currentBuffer.directLightingBuffer[index * 4 + 0], currentBuffer.directLightingBuffer[index * 4 + 1], currentBuffer.directLightingBuffer[index * 4 + 2]));
         float indirectLuminance = Luminance(Vec3f(currentBuffer.indirectLightingBuffer[index * 4 + 0], currentBuffer.indirectLightingBuffer[index * 4 + 1], currentBuffer.indirectLightingBuffer[index * 4 + 2]));
-        denoiseParam.directMoments[index] = make_float2(directLuminance, directLuminance * directLuminance);
-        denoiseParam.indirectMoments[index] = make_float2(indirectLuminance, indirectLuminance * indirectLuminance);
+        currentDirectMoments[index] = make_float2(directLuminance, directLuminance * directLuminance);
+        currentIndirectMoments[index] = make_float2(indirectLuminance, indirectLuminance * indirectLuminance);
         currentBuffer.directLightingBuffer[index * 4 + 3] = 1.f;
         currentBuffer.indirectLightingBuffer[index * 4 + 3] = 1.f;
-        denoiseParam.historyLength[index] = 1;
+        currentHistoryLength[index] = 1;
         return;
     }
 
-    // get last frame pixel position
     Vec2f pixelPos;
-    bool valid = GetLastFramePos(index, cameraParam, renderParam, currentBuffer, lastBuffer, currentGBuffer, lastGBuffer, pixelPos);
+    bool valid = GetLastFramePos(index, renderParam, currentGBuffer, lastGBuffer, pixelPos);
+    int lastFrameIndex = index;
+    if(valid){
+        int lastFrameX = max(0, min(renderParam.width - 1, (int)floorf(pixelPos(0))));
+        int lastFrameY = max(0, min(renderParam.height - 1, (int)floorf(pixelPos(1))));
+        lastFrameIndex = GBufferPixelToBufferIndex(lastFrameX, lastFrameY, renderParam.width, renderParam.height);
+    }
 
-    denoiseParam.historyLength[index] = valid ? min(denoiseParam.historyLength[index], denoiseParam.maxHistoryLength) : 1;
-    float alpha = valid ? 1.f / denoiseParam.historyLength[index] : 1.0f;
-    int lastFrameIndex = valid ? (int)pixelPos(1) * renderParam.width + (int)pixelPos(0) : index;
+    int historyLength = valid ? min(lastHistoryLengthBuffer[lastFrameIndex] + 1, denoiseParam.maxHistoryLength) : 1;
+    float alpha = valid ? 1.f / historyLength : 1.0f;
 
     currentBuffer.directLightingBuffer[index * 4 + 0] = alpha * currentBuffer.directLightingBuffer[index * 4 + 0] + (1 - alpha) * lastBuffer.directLightingBuffer[lastFrameIndex * 4 + 0];
     currentBuffer.directLightingBuffer[index * 4 + 1] = alpha * currentBuffer.directLightingBuffer[index * 4 + 1] + (1 - alpha) * lastBuffer.directLightingBuffer[lastFrameIndex * 4 + 1];
@@ -447,11 +537,10 @@ __device__ void TemporalDenoising(int index, RenderBuffer currentBuffer, RenderB
     currentBuffer.indirectLightingBuffer[index * 4 + 1] = alpha * currentBuffer.indirectLightingBuffer[index * 4 + 1] + (1 - alpha) * lastBuffer.indirectLightingBuffer[lastFrameIndex * 4 + 1];
     currentBuffer.indirectLightingBuffer[index * 4 + 2] = alpha * currentBuffer.indirectLightingBuffer[index * 4 + 2] + (1 - alpha) * lastBuffer.indirectLightingBuffer[lastFrameIndex * 4 + 2];
 
-    // update moments
-    float2 &directMoment = denoiseParam.directMoments[index];
-    float2 &indirectMoment = denoiseParam.indirectMoments[index];
-    float2 lastDirectMoment = valid ? denoiseParam.directMoments[lastFrameIndex] : make_float2(0.f, 0.f);
-    float2 lastIndirectMoment = valid ? denoiseParam.indirectMoments[lastFrameIndex] : make_float2(0.f, 0.f);
+    float2 &directMoment = currentDirectMoments[index];
+    float2 &indirectMoment = currentIndirectMoments[index];
+    float2 lastDirectMoment = valid ? lastDirectMomentsBuffer[lastFrameIndex] : make_float2(0.f, 0.f);
+    float2 lastIndirectMoment = valid ? lastIndirectMomentsBuffer[lastFrameIndex] : make_float2(0.f, 0.f);
     float directLuminance = Luminance(Vec3f(currentBuffer.directLightingBuffer[index * 4 + 0], currentBuffer.directLightingBuffer[index * 4 + 1], currentBuffer.directLightingBuffer[index * 4 + 2]));
     float indirectLuminance = Luminance(Vec3f(currentBuffer.indirectLightingBuffer[index * 4 + 0], currentBuffer.indirectLightingBuffer[index * 4 + 1], currentBuffer.indirectLightingBuffer[index * 4 + 2]));
     directMoment.x = alpha * directLuminance + (1 - alpha) * lastDirectMoment.x;
@@ -461,12 +550,11 @@ __device__ void TemporalDenoising(int index, RenderBuffer currentBuffer, RenderB
     if(valid){
         currentBuffer.directLightingBuffer[index * 4 + 3] = directMoment.y - directMoment.x * directMoment.x;
         currentBuffer.indirectLightingBuffer[index * 4 + 3] = indirectMoment.y - indirectMoment.x * indirectMoment.x;
-        denoiseParam.historyLength[index] = min(denoiseParam.historyLength[index] + 1, denoiseParam.maxHistoryLength);
+        currentHistoryLength[index] = historyLength;
     }else{
-        // denoiseParam.historyLength[index] = 1;
         currentBuffer.directLightingBuffer[index * 4 + 3] = 1.f;
         currentBuffer.indirectLightingBuffer[index * 4 + 3] = 1.f;
-        denoiseParam.historyLength[index] = 1;
+        currentHistoryLength[index] = 1;
     }
     
 }
@@ -476,7 +564,6 @@ __global__ void TemporalDenoiseKernel(DenoiseParam denoiseParam, CameraParam cam
     int width = renderParam.width, height = renderParam.height;
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
-    j = height - j - 1; // flip y
     if (i >= width || j >= height)
         return;
     int idx = j * width + i;
@@ -490,16 +577,25 @@ __global__ void ComputeVarianceKernel(DenoiseParam denoiseParam, RenderParam ren
     if (i >= width || j >= height)
         return;
     int idx = j * width + i;
-    int historyLength = denoiseParam.historyLength[idx];
+    float2 *currentDirectMoments = denoiseParam.directMoments[denoiseParam.currentTemporalBufferIndex];
+    float2 *currentIndirectMoments = denoiseParam.indirectMoments[denoiseParam.currentTemporalBufferIndex];
+    int *currentHistoryLength = denoiseParam.historyLength[denoiseParam.currentTemporalBufferIndex];
+    int sampleY = BufferYToGBufferY(j, height);
+    float sampleXf = (float)i + 0.5f;
+    float sampleYf = (float)sampleY + 0.5f;
+    int historyLength = currentHistoryLength[idx];
     if(historyLength < 4){
         Vec3f centerDirectColor = Vec3f(currentBuffer.directLightingBuffer[4 * idx + 0], currentBuffer.directLightingBuffer[4 * idx + 1], currentBuffer.directLightingBuffer[4 * idx + 2]);
         Vec3f centerIndirectColor = Vec3f(currentBuffer.indirectLightingBuffer[4 * idx + 0], currentBuffer.indirectLightingBuffer[4 * idx + 1], currentBuffer.indirectLightingBuffer[4 * idx + 2]);
         float centerDirectLuminance = Luminance(centerDirectColor);
         float centerIndirectLuminance = Luminance(centerIndirectColor);
-        float4 motionDepth = tex2D<float4>(gBuffer.cudaTexObjMotionDepth, i, j);
+        float4 motionDepth = tex2D<float4>(gBuffer.cudaTexObjMotionDepth, sampleXf, sampleYf);
         float centerDepth = motionDepth.z;
         float dz = fmaxf(motionDepth.w, 1e-4f);
-        ushort4 normalMatID = tex2D<ushort4>(gBuffer.cudaTexObjNormalMatID, i, j);
+        ushort4 normalMatID = tex2D<ushort4>(gBuffer.cudaTexObjNormalMatID, sampleXf, sampleYf);
+        ushort4 baryMeshID = tex2D<ushort4>(gBuffer.cudaTexObjBaryMeshID, sampleXf, sampleYf);
+        int centerMaterialID = normalMatID.w;
+        int centerMeshID = baryMeshID.w;
         Vec3f centerNormal = Vec3f(normalMatID.x / 65535.0f * 2.f - 1.f, normalMatID.y / 65535.0f * 2.f - 1.f, normalMatID.z / 65535.0f * 2.f - 1.f).normalized();
         float centerDirectVariance = fmaxf(0.0f, currentBuffer.directLightingBuffer[idx * 4 + 3]);
         float centerIndirectVariance = fmaxf(0.0f, currentBuffer.indirectLightingBuffer[idx * 4 + 3]);
@@ -522,14 +618,23 @@ __global__ void ComputeVarianceKernel(DenoiseParam denoiseParam, RenderParam ren
                     int nidx = nj * width + ni;
                     Vec3f nDirectColor = Vec3f(currentBuffer.directLightingBuffer[4 * nidx + 0], currentBuffer.directLightingBuffer[4 * nidx + 1], currentBuffer.directLightingBuffer[4 * nidx + 2]);
                     Vec3f nIndirectColor = Vec3f(currentBuffer.indirectLightingBuffer[4 * nidx + 0], currentBuffer.indirectLightingBuffer[4 * nidx + 1], currentBuffer.indirectLightingBuffer[4 * nidx + 2]);
-                    float4 nMotionDepth = tex2D<float4>(gBuffer.cudaTexObjMotionDepth, ni, nj);
+                    int neighborSampleY = BufferYToGBufferY(nj, height);
+                    float neighborSampleXf = (float)ni + 0.5f;
+                    float neighborSampleYf = (float)neighborSampleY + 0.5f;
+                    float4 nMotionDepth = tex2D<float4>(gBuffer.cudaTexObjMotionDepth, neighborSampleXf, neighborSampleYf);
                     float nDepth = nMotionDepth.z;
-                    ushort4 nNormalMatID = tex2D<ushort4>(gBuffer.cudaTexObjNormalMatID, ni, nj);
+                    ushort4 nNormalMatID = tex2D<ushort4>(gBuffer.cudaTexObjNormalMatID, neighborSampleXf, neighborSampleYf);
+                    ushort4 nBaryMeshID = tex2D<ushort4>(gBuffer.cudaTexObjBaryMeshID, neighborSampleXf, neighborSampleYf);
+                    int neighborMaterialID = nNormalMatID.w;
+                    int neighborMeshID = nBaryMeshID.w;
+                    if(centerMaterialID != neighborMaterialID || centerMeshID != neighborMeshID){
+                        continue;
+                    }
                     Vec3f nNormal = Vec3f(nNormalMatID.x / 65535.0f * 2.f - 1.f, nNormalMatID.y / 65535.0f * 2.f - 1.f, nNormalMatID.z / 65535.0f * 2.f - 1.f).normalized();
                     float nDirectLuminance = Luminance(nDirectColor);
                     float nIndirectLuminance = Luminance(nIndirectColor);
-                    Vec2f nDirectMoment = Vec2f(denoiseParam.directMoments[nidx].x, denoiseParam.directMoments[nidx].y);
-                    Vec2f nIndirectMoment = Vec2f(denoiseParam.indirectMoments[nidx].x, denoiseParam.indirectMoments[nidx].y);
+                    Vec2f nDirectMoment = Vec2f(currentDirectMoments[nidx].x, currentDirectMoments[nidx].y);
+                    Vec2f nIndirectMoment = Vec2f(currentIndirectMoments[nidx].x, currentIndirectMoments[nidx].y);
 
                     float dist = sqrtf(float(ki * ki + kj * kj));
                     float wz = -fabsf(centerDepth - nDepth) / (sigmaDepth * dist + 1e-4f);
@@ -589,6 +694,9 @@ __global__ void AtrousKernel(DenoiseParam denoiseParam, CameraParam cameraParam,
     if (i >= width || j >= height) return;
 
     int idx = j * width + i;
+    int sampleY = BufferYToGBufferY(j, height);
+    float sampleXf = (float)i + 0.5f;
+    float sampleYf = (float)sampleY + 0.5f;
 
     Vec3f centerDirectColor = Vec3f(renderBuffer.directLightingBuffer[4 * idx + 0], renderBuffer.directLightingBuffer[4 * idx + 1], renderBuffer.directLightingBuffer[4 * idx + 2]);
     Vec3f centerIndirectColor = Vec3f(renderBuffer.indirectLightingBuffer[4 * idx + 0], renderBuffer.indirectLightingBuffer[4 * idx + 1], renderBuffer.indirectLightingBuffer[4 * idx + 2]);
@@ -596,11 +704,14 @@ __global__ void AtrousKernel(DenoiseParam denoiseParam, CameraParam cameraParam,
     float centerDirectLuminance = Luminance(centerDirectColor);
     float centerIndirectLuminance = Luminance(centerIndirectColor);
 
-    float4 motionDepth = tex2D<float4>(gBuffer.cudaTexObjMotionDepth, i, j);
+    float4 motionDepth = tex2D<float4>(gBuffer.cudaTexObjMotionDepth, sampleXf, sampleYf);
     float centerDepth = motionDepth.z;
     float dz = fmaxf(motionDepth.w, 1e-4f); 
 
-    ushort4 normalMatID = tex2D<ushort4>(gBuffer.cudaTexObjNormalMatID, i, j);
+        ushort4 normalMatID = tex2D<ushort4>(gBuffer.cudaTexObjNormalMatID, sampleXf, sampleYf);
+        ushort4 baryMeshID = tex2D<ushort4>(gBuffer.cudaTexObjBaryMeshID, sampleXf, sampleYf);
+        int centerMaterialID = normalMatID.w;
+        int centerMeshID = baryMeshID.w;
     Vec3f centerNormal = Vec3f(normalMatID.x / 65535.0f * 2.f - 1.f, normalMatID.y / 65535.0f * 2.f - 1.f, normalMatID.z / 65535.0f * 2.f - 1.f).normalized();
 
     float centerDirectVariance = fmaxf(0.0f, renderBuffer.directLightingBuffer[idx * 4 + 3]);
@@ -626,10 +737,19 @@ __global__ void AtrousKernel(DenoiseParam denoiseParam, CameraParam cameraParam,
 
             if(ni >= 0 && ni < width && nj >= 0 && nj < height){
                 int nidx = nj * width + ni;
-                float4 nMotionDepth = tex2D<float4>(gBuffer.cudaTexObjMotionDepth, ni, nj);
+                int neighborSampleY = BufferYToGBufferY(nj, height);
+                float neighborSampleXf = (float)ni + 0.5f;
+                float neighborSampleYf = (float)neighborSampleY + 0.5f;
+                float4 nMotionDepth = tex2D<float4>(gBuffer.cudaTexObjMotionDepth, neighborSampleXf, neighborSampleYf);
                 float nDepth = nMotionDepth.z;
 
-                ushort4 nNormalMatID = tex2D<ushort4>(gBuffer.cudaTexObjNormalMatID, ni, nj);
+                ushort4 nNormalMatID = tex2D<ushort4>(gBuffer.cudaTexObjNormalMatID, neighborSampleXf, neighborSampleYf);
+                ushort4 nBaryMeshID = tex2D<ushort4>(gBuffer.cudaTexObjBaryMeshID, neighborSampleXf, neighborSampleYf);
+                int neighborMaterialID = nNormalMatID.w;
+                int neighborMeshID = nBaryMeshID.w;
+                if(centerMaterialID != neighborMaterialID || centerMeshID != neighborMeshID){
+                    continue;
+                }
                 Vec3f nNormal = Vec3f(nNormalMatID.x / 65535.0f * 2.f - 1.f, nNormalMatID.y / 65535.0f * 2.f - 1.f, nNormalMatID.z / 65535.0f * 2.f - 1.f).normalized();
 
                 Vec3f nDirectColor = Vec3f(renderBuffer.directLightingBuffer[4 * nidx + 0], renderBuffer.directLightingBuffer[4 * nidx + 1], renderBuffer.directLightingBuffer[4 * nidx + 2]);
@@ -972,6 +1092,7 @@ public:
             if(renderParam.denoise){
                 renderParam.currentRenderBufferIndex = 1 - renderParam.currentRenderBufferIndex;
                 renderParam.currentGBufferIndex = 1 - renderParam.currentGBufferIndex;
+                denoiseParam.currentTemporalBufferIndex = 1 - denoiseParam.currentTemporalBufferIndex;
                 framebufferReset = true;
             }
 
@@ -1004,9 +1125,14 @@ public:
         cudaMalloc(&renderBuffers[1].indirectLightingBuffer, sizeof(float) * 4 * width * height);
 
         // Initialize denoise buffer
-        cudaMalloc(&denoiseParam.directMoments, sizeof(float2) * width * height);
-        cudaMalloc(&denoiseParam.indirectMoments, sizeof(float2) * width * height);
-        cudaMalloc(&denoiseParam.historyLength, sizeof(int) * width * height);
+        for(int i = 0; i < 2; i++){
+            cudaMalloc(&denoiseParam.directMoments[i], sizeof(float2) * width * height);
+            cudaMalloc(&denoiseParam.indirectMoments[i], sizeof(float2) * width * height);
+            cudaMalloc(&denoiseParam.historyLength[i], sizeof(int) * width * height);
+            cudaMemset(denoiseParam.directMoments[i], 0, sizeof(float2) * width * height);
+            cudaMemset(denoiseParam.indirectMoments[i], 0, sizeof(float2) * width * height);
+            cudaMemset(denoiseParam.historyLength[i], 0, sizeof(int) * width * height);
+        }
 
         this -> pixels = ui -> pixels;
         this -> numBytes = ui -> numBytes;
@@ -1081,7 +1207,7 @@ public:
 
             cudaGraphicsMapResources(1, &gBuffer.cudaPositionTriIDResource, 0);
             cudaGraphicsSubResourceGetMappedArray(&positionTriIDArray, gBuffer.cudaPositionTriIDResource, 0, 0);
-            gBuffer.cudaTexObjPositionTriID = CreateTextureObject(positionTriIDArray, addressMode, cudaFilterModeLinear, readMode);
+            gBuffer.cudaTexObjPositionTriID = CreateTextureObject(positionTriIDArray, addressMode, filterMode, readMode);
             cudaGraphicsUnmapResources(1, &gBuffer.cudaPositionTriIDResource, 0);
 
             cudaGraphicsMapResources(1, &gBuffer.cudaNormalMatIDResource, 0);
@@ -1096,7 +1222,7 @@ public:
 
             cudaGraphicsMapResources(1, &gBuffer.cudaMotionDepthResource, 0);
             cudaGraphicsSubResourceGetMappedArray(&motionDepthArray, gBuffer.cudaMotionDepthResource, 0, 0);
-            gBuffer.cudaTexObjMotionDepth = CreateTextureObject(motionDepthArray, addressMode, cudaFilterModeLinear, readMode);
+            gBuffer.cudaTexObjMotionDepth = CreateTextureObject(motionDepthArray, addressMode, filterMode, readMode);
             cudaGraphicsUnmapResources(1, &gBuffer.cudaMotionDepthResource, 0);
         }
         gBufferShader = new Shader("../../Shader/gbuffer.vs", "../../Shader/gbuffer.fs");
@@ -1173,9 +1299,11 @@ public:
         cudaFree(renderBuffers[0].indirectLightingBuffer);
         cudaFree(renderBuffers[1].directLightingBuffer);
         cudaFree(renderBuffers[1].indirectLightingBuffer);
-        cudaFree(denoiseParam.directMoments);
-        cudaFree(denoiseParam.indirectMoments);
-        cudaFree(denoiseParam.historyLength);
+        for(int i = 0; i < 2; i++){
+            cudaFree(denoiseParam.directMoments[i]);
+            cudaFree(denoiseParam.indirectMoments[i]);
+            cudaFree(denoiseParam.historyLength[i]);
+        }
     }
     void GBufferFree(){
         for(int i = 0; i < 2; i++){

@@ -3,5 +3,7 @@
 Model/**
 Analysis/**
 output/**
+Image/**
+output/**
 obj_splitter.cpp
 obj_splitter.exe

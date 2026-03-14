@@ -23,13 +23,23 @@ int main(int argc, char** argv)
         return -1;
     }
     std::string sceneFilePath = argv[1];
-    UI *ui = new UI(sceneFilePath);
-    Scene *scene = new Scene(sceneFilePath);
-    // UI *ui = new UI(scene -> width, scene -> height);
-    Renderer *renderer = new Renderer(ui);
-    renderer -> RenderLoop();
-    delete renderer;
-    delete scene;
-    delete ui;
-    return 0;
+    UI *ui = nullptr;
+    Scene *scene = nullptr;
+    Renderer *renderer = nullptr;
+    try{
+        ui = new UI(sceneFilePath);
+        scene = new Scene(sceneFilePath);
+        renderer = new Renderer(ui);
+        renderer -> RenderLoop();
+        delete renderer;
+        delete scene;
+        delete ui;
+        return 0;
+    }catch(const std::exception& e){
+        std::cout << "Fatal error: " << e.what() << std::endl;
+        delete renderer;
+        delete scene;
+        delete ui;
+        return -1;
+    }
 }

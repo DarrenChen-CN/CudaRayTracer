@@ -1,0 +1,1085 @@
+{
+    "camera": {
+        "type": "pinhole",
+        "resolution": [
+            1600,
+            1200
+        ],
+        "fov": 28,
+        "max_bounces": 6,
+        "rr": 0.7,
+        "spp": 8192,
+        "direction": [
+            0,
+            0.08,
+            1
+        ],
+        "denoise": false
+    },
+    "textures": [],
+    "materials": [
+        {
+            "name": "BackdropPanel",
+            "type": "pbr",
+            "basecolor": [
+                0.9,
+                0.9,
+                0.92
+            ],
+            "metallic": 0,
+            "roughness": 0.97
+        },
+        {
+            "name": "StudioFloor",
+            "type": "pbr",
+            "basecolor": [
+                0.66,
+                0.67,
+                0.7
+            ],
+            "metallic": 0,
+            "roughness": 0.22
+        },
+        {
+            "name": "CeramicWhite_r1",
+            "type": "pbr",
+            "basecolor": [
+                0.95,
+                0.95,
+                0.94
+            ],
+            "metallic": 0,
+            "roughness": 0.02
+        },
+        {
+            "name": "CeramicWhite_r2",
+            "type": "pbr",
+            "basecolor": [
+                0.95,
+                0.95,
+                0.94
+            ],
+            "metallic": 0,
+            "roughness": 0.05
+        },
+        {
+            "name": "CeramicWhite_r3",
+            "type": "pbr",
+            "basecolor": [
+                0.95,
+                0.95,
+                0.94
+            ],
+            "metallic": 0,
+            "roughness": 0.09
+        },
+        {
+            "name": "CeramicWhite_r4",
+            "type": "pbr",
+            "basecolor": [
+                0.95,
+                0.95,
+                0.94
+            ],
+            "metallic": 0,
+            "roughness": 0.15
+        },
+        {
+            "name": "CeramicWhite_r5",
+            "type": "pbr",
+            "basecolor": [
+                0.95,
+                0.95,
+                0.94
+            ],
+            "metallic": 0,
+            "roughness": 0.24
+        },
+        {
+            "name": "CeramicWhite_r6",
+            "type": "pbr",
+            "basecolor": [
+                0.95,
+                0.95,
+                0.94
+            ],
+            "metallic": 0,
+            "roughness": 0.36
+        },
+        {
+            "name": "CeramicWhite_r7",
+            "type": "pbr",
+            "basecolor": [
+                0.95,
+                0.95,
+                0.94
+            ],
+            "metallic": 0,
+            "roughness": 0.54
+        },
+        {
+            "name": "CeramicWhite_r8",
+            "type": "pbr",
+            "basecolor": [
+                0.95,
+                0.95,
+                0.94
+            ],
+            "metallic": 0,
+            "roughness": 0.78
+        },
+        {
+            "name": "BerryPlastic_r1",
+            "type": "pbr",
+            "basecolor": [
+                0.72,
+                0.19,
+                0.17
+            ],
+            "metallic": 0,
+            "roughness": 0.02
+        },
+        {
+            "name": "BerryPlastic_r2",
+            "type": "pbr",
+            "basecolor": [
+                0.72,
+                0.19,
+                0.17
+            ],
+            "metallic": 0,
+            "roughness": 0.05
+        },
+        {
+            "name": "BerryPlastic_r3",
+            "type": "pbr",
+            "basecolor": [
+                0.72,
+                0.19,
+                0.17
+            ],
+            "metallic": 0,
+            "roughness": 0.09
+        },
+        {
+            "name": "BerryPlastic_r4",
+            "type": "pbr",
+            "basecolor": [
+                0.72,
+                0.19,
+                0.17
+            ],
+            "metallic": 0,
+            "roughness": 0.15
+        },
+        {
+            "name": "BerryPlastic_r5",
+            "type": "pbr",
+            "basecolor": [
+                0.72,
+                0.19,
+                0.17
+            ],
+            "metallic": 0,
+            "roughness": 0.24
+        },
+        {
+            "name": "BerryPlastic_r6",
+            "type": "pbr",
+            "basecolor": [
+                0.72,
+                0.19,
+                0.17
+            ],
+            "metallic": 0,
+            "roughness": 0.36
+        },
+        {
+            "name": "BerryPlastic_r7",
+            "type": "pbr",
+            "basecolor": [
+                0.72,
+                0.19,
+                0.17
+            ],
+            "metallic": 0,
+            "roughness": 0.54
+        },
+        {
+            "name": "BerryPlastic_r8",
+            "type": "pbr",
+            "basecolor": [
+                0.72,
+                0.19,
+                0.17
+            ],
+            "metallic": 0,
+            "roughness": 0.78
+        },
+        {
+            "name": "SilverMetal_r1",
+            "type": "pbr",
+            "basecolor": [
+                0.95,
+                0.96,
+                0.98
+            ],
+            "metallic": 1,
+            "roughness": 0.02
+        },
+        {
+            "name": "SilverMetal_r2",
+            "type": "pbr",
+            "basecolor": [
+                0.95,
+                0.96,
+                0.98
+            ],
+            "metallic": 1,
+            "roughness": 0.05
+        },
+        {
+            "name": "SilverMetal_r3",
+            "type": "pbr",
+            "basecolor": [
+                0.95,
+                0.96,
+                0.98
+            ],
+            "metallic": 1,
+            "roughness": 0.09
+        },
+        {
+            "name": "SilverMetal_r4",
+            "type": "pbr",
+            "basecolor": [
+                0.95,
+                0.96,
+                0.98
+            ],
+            "metallic": 1,
+            "roughness": 0.15
+        },
+        {
+            "name": "SilverMetal_r5",
+            "type": "pbr",
+            "basecolor": [
+                0.95,
+                0.96,
+                0.98
+            ],
+            "metallic": 1,
+            "roughness": 0.24
+        },
+        {
+            "name": "SilverMetal_r6",
+            "type": "pbr",
+            "basecolor": [
+                0.95,
+                0.96,
+                0.98
+            ],
+            "metallic": 1,
+            "roughness": 0.36
+        },
+        {
+            "name": "SilverMetal_r7",
+            "type": "pbr",
+            "basecolor": [
+                0.95,
+                0.96,
+                0.98
+            ],
+            "metallic": 1,
+            "roughness": 0.54
+        },
+        {
+            "name": "SilverMetal_r8",
+            "type": "pbr",
+            "basecolor": [
+                0.95,
+                0.96,
+                0.98
+            ],
+            "metallic": 1,
+            "roughness": 0.78
+        },
+        {
+            "name": "GoldMetal_r1",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                0.78,
+                0.34
+            ],
+            "metallic": 1,
+            "roughness": 0.02
+        },
+        {
+            "name": "GoldMetal_r2",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                0.78,
+                0.34
+            ],
+            "metallic": 1,
+            "roughness": 0.05
+        },
+        {
+            "name": "GoldMetal_r3",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                0.78,
+                0.34
+            ],
+            "metallic": 1,
+            "roughness": 0.09
+        },
+        {
+            "name": "GoldMetal_r4",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                0.78,
+                0.34
+            ],
+            "metallic": 1,
+            "roughness": 0.15
+        },
+        {
+            "name": "GoldMetal_r5",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                0.78,
+                0.34
+            ],
+            "metallic": 1,
+            "roughness": 0.24
+        },
+        {
+            "name": "GoldMetal_r6",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                0.78,
+                0.34
+            ],
+            "metallic": 1,
+            "roughness": 0.36
+        },
+        {
+            "name": "GoldMetal_r7",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                0.78,
+                0.34
+            ],
+            "metallic": 1,
+            "roughness": 0.54
+        },
+        {
+            "name": "GoldMetal_r8",
+            "type": "pbr",
+            "basecolor": [
+                1,
+                0.78,
+                0.34
+            ],
+            "metallic": 1,
+            "roughness": 0.78
+        }
+    ],
+    "objects": [
+        {
+            "name": "backdrop",
+            "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane_uv_double.obj",
+            "translate": [
+                0,
+                0,
+                40
+            ],
+            "scale": [
+                800,
+                320,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0
+                }
+            ],
+            "material": "BackdropPanel"
+        },
+        {
+            "name": "floor",
+            "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane_uv_double.obj",
+            "translate": [
+                0,
+                0,
+                860
+            ],
+            "scale": [
+                800,
+                980,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": -90
+                }
+            ],
+            "material": "StudioFloor"
+        },
+        {
+            "name": "sphere_1_1",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                78,
+                1.326,
+                134.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "CeramicWhite_r1"
+        },
+        {
+            "name": "sphere_1_2",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                170,
+                1.326,
+                134.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "CeramicWhite_r2"
+        },
+        {
+            "name": "sphere_1_3",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                262,
+                1.326,
+                134.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "CeramicWhite_r3"
+        },
+        {
+            "name": "sphere_1_4",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                354,
+                1.326,
+                134.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "CeramicWhite_r4"
+        },
+        {
+            "name": "sphere_1_5",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                446,
+                1.326,
+                134.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "CeramicWhite_r5"
+        },
+        {
+            "name": "sphere_1_6",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                538,
+                1.326,
+                134.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "CeramicWhite_r6"
+        },
+        {
+            "name": "sphere_1_7",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                630,
+                1.326,
+                134.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "CeramicWhite_r7"
+        },
+        {
+            "name": "sphere_1_8",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                722,
+                1.326,
+                134.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "CeramicWhite_r8"
+        },
+        {
+            "name": "sphere_2_1",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                78,
+                1.326,
+                244.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "BerryPlastic_r1"
+        },
+        {
+            "name": "sphere_2_2",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                170,
+                1.326,
+                244.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "BerryPlastic_r2"
+        },
+        {
+            "name": "sphere_2_3",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                262,
+                1.326,
+                244.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "BerryPlastic_r3"
+        },
+        {
+            "name": "sphere_2_4",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                354,
+                1.326,
+                244.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "BerryPlastic_r4"
+        },
+        {
+            "name": "sphere_2_5",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                446,
+                1.326,
+                244.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "BerryPlastic_r5"
+        },
+        {
+            "name": "sphere_2_6",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                538,
+                1.326,
+                244.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "BerryPlastic_r6"
+        },
+        {
+            "name": "sphere_2_7",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                630,
+                1.326,
+                244.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "BerryPlastic_r7"
+        },
+        {
+            "name": "sphere_2_8",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                722,
+                1.326,
+                244.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "BerryPlastic_r8"
+        },
+        {
+            "name": "sphere_3_1",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                78,
+                1.326,
+                354.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "SilverMetal_r1"
+        },
+        {
+            "name": "sphere_3_2",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                170,
+                1.326,
+                354.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "SilverMetal_r2"
+        },
+        {
+            "name": "sphere_3_3",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                262,
+                1.326,
+                354.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "SilverMetal_r3"
+        },
+        {
+            "name": "sphere_3_4",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                354,
+                1.326,
+                354.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "SilverMetal_r4"
+        },
+        {
+            "name": "sphere_3_5",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                446,
+                1.326,
+                354.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "SilverMetal_r5"
+        },
+        {
+            "name": "sphere_3_6",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                538,
+                1.326,
+                354.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "SilverMetal_r6"
+        },
+        {
+            "name": "sphere_3_7",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                630,
+                1.326,
+                354.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "SilverMetal_r7"
+        },
+        {
+            "name": "sphere_3_8",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                722,
+                1.326,
+                354.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "SilverMetal_r8"
+        },
+        {
+            "name": "sphere_4_1",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                78,
+                1.326,
+                464.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "GoldMetal_r1"
+        },
+        {
+            "name": "sphere_4_2",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                170,
+                1.326,
+                464.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "GoldMetal_r2"
+        },
+        {
+            "name": "sphere_4_3",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                262,
+                1.326,
+                464.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "GoldMetal_r3"
+        },
+        {
+            "name": "sphere_4_4",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                354,
+                1.326,
+                464.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "GoldMetal_r4"
+        },
+        {
+            "name": "sphere_4_5",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                446,
+                1.326,
+                464.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "GoldMetal_r5"
+        },
+        {
+            "name": "sphere_4_6",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                538,
+                1.326,
+                464.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "GoldMetal_r6"
+        },
+        {
+            "name": "sphere_4_7",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                630,
+                1.326,
+                464.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "GoldMetal_r7"
+        },
+        {
+            "name": "sphere_4_8",
+            "path": "D:/code/projects/CudaRayTracer/Model/mitsuba/mitsuba-sphere.obj",
+            "translate": [
+                722,
+                1.326,
+                464.694
+            ],
+            "scale": [
+                34,
+                34,
+                34
+            ],
+            "rotate": [
+                {
+                    "rotateY": 0
+                }
+            ],
+            "material": "GoldMetal_r8"
+        }
+    ],
+    "lights": [
+        {
+            "name": "StudioHDR",
+            "type": "env",
+            "path": "D:/code/projects/CudaRayTracer/Image/HDR/studio_kominka_02_4k.hdr"
+        }
+    ]
+}

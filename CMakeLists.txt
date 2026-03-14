@@ -15,7 +15,7 @@ set(GLAD_PATH ${PROJECT_SOURCE_DIR}/ThirdParty/Glad)
 set(TINY_OBJ_LOADER_PATH ${PROJECT_SOURCE_DIR}/ThirdParty/tinyobj)
 set(STB_IMAGE_PATH ${PROJECT_SOURCE_DIR}/ThirdParty/stb_image)
 set(JSON_PATH ${PROJECT_SOURCE_DIR}/ThirdParty/Json)
-set(CUDA_PATH "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.3")
+set(CUDA_PATH "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6")
 
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 

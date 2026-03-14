@@ -240,8 +240,11 @@ __host__ void Texture::Load(std::string filename){
 __device__ Vec3f Texture::Sample(float &u, float &v) const {
     u = Clamp(0.0f, 0.999999f, u);
     v = Clamp(0.0f, 0.999999f, v);
+    // OBJ UVs are authored with a bottom-left origin, while stb loads image rows top-down.
+    // Flip V here so textured models sample the expected texel row.
+    float sampleV = 1.0f - v;
     // sample texture
-    float4 color = tex2D<float4>(cudaTextureObj, u, v);
+    float4 color = tex2D<float4>(cudaTextureObj, u, sampleV);
     return Vec3f(color.x, color.y, color.z);
 }
 

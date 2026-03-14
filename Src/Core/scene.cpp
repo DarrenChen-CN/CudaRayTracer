@@ -7,9 +7,50 @@
 #include <imgui_impl_opengl3_loader.h>
 #include <glad/glad.h>
 
+namespace {
+
+std::string ResolveMaterialName(
+    const json &objJson,
+    const LoadedOBJMesh &loadedMesh,
+    const std::unordered_map<std::string, int> &materialMap)
+{
+    if (objJson.contains("material")) {
+        return objJson["material"];
+    }
+
+    if (objJson.contains("material_overrides") && objJson["material_overrides"].is_object()) {
+        const json &overrides = objJson["material_overrides"];
+        if (!loadedMesh.materialName.empty() && overrides.contains(loadedMesh.materialName)) {
+            return overrides[loadedMesh.materialName];
+        }
+    }
+
+    if (!loadedMesh.materialName.empty() && materialMap.find(loadedMesh.materialName) != materialMap.end()) {
+        return loadedMesh.materialName;
+    }
+
+    if (objJson.contains("default_material")) {
+        return objJson["default_material"];
+    }
+
+    return "";
+}
+
+std::string BuildSceneMeshName(const json &objJson, const LoadedOBJMesh &loadedMesh, bool expanded)
+{
+    std::string objectName = objJson["name"];
+    if (!expanded) {
+        return objectName;
+    }
+    return objectName + "::" + loadedMesh.name;
+}
+
+} // namespace
 
 __host__ __device__ Scene::Scene(const std::string &sceneFilePath){
-    ParseSceneFile(sceneFilePath);
+    if(!ParseSceneFile(sceneFilePath)){
+        throw std::runtime_error("Failed to initialize scene from file: " + sceneFilePath);
+    }
     BuildBVH();
     InitCameraParam();
     SetRenderParam();
@@ -67,8 +108,8 @@ __host__ __device__ Scene::~Scene(){
     }
 }
 
-__host__ __device__ std::vector<Triangle> Scene::LoadObject(const std::string &objectFilePath, int id, Mat4f transform, Mat4f transformInv){
-    return OBJLoader::LoadObject(id, objectFilePath, transform);
+__host__ std::vector<LoadedOBJMesh> Scene::LoadObject(const std::string &objectFilePath, Mat4f transform, Mat4f transformInv){
+    return OBJLoader::LoadObject(objectFilePath, transform, transformInv);
 }
 
 __host__ __device__ void Scene::BuildBVH(){
@@ -136,6 +177,9 @@ __host__ __device__ bool Scene::ParseSceneFile(const std::string& filename) {
         return true;
     } catch (const json::exception& e) {
         std::cout << "JSON parsing error: " << e.what() << std::endl;
+        return false;
+    } catch (const std::exception& e) {
+        std::cout << "Scene parsing/runtime error: " << e.what() << std::endl;
         return false;
     }
 }
@@ -239,6 +283,8 @@ bool Scene::ParseMaterials(const json& materialsJson) {
             mat.type = PBR;
         }else if(matJson["type"] == "subsurface"){
             mat.type = SUBSURFACE;
+        }else if(matJson["type"] == "dielectric" || matJson["type"] == "glass"){
+            mat.type = DIELECTRIC;
         }
         else{
             std::cout << "Error: Unsupported material type " << matJson["type"] << std::endl;
@@ -302,6 +348,33 @@ bool Scene::ParseMaterials(const json& materialsJson) {
             }
 
             mat.metallic = 0.0f;
+        }else if(mat.type == DIELECTRIC){
+            if (matJson.contains("basecolor")) {
+                auto basecolor = matJson["basecolor"];
+                mat.basecolor = Vec3f(basecolor[0], basecolor[1], basecolor[2]);
+            } else {
+                mat.basecolor = Vec3f(1.0f, 1.0f, 1.0f);
+            }
+
+            if(matJson.contains("ior")){
+                mat.ior = matJson["ior"];
+            }else{
+                mat.ior = 1.5f;
+            }
+
+            if(matJson.contains("transmission")){
+                mat.transmission = matJson["transmission"];
+            }else{
+                mat.transmission = 1.0f;
+            }
+
+            if(matJson.contains("roughness")){
+                mat.roughness = matJson["roughness"];
+            }else{
+                mat.roughness = 0.0f;
+            }
+
+            mat.metallic = 0.0f;
         }
 
         if(matJson.contains("diffuse_texture")){
@@ -328,41 +401,18 @@ bool Scene::ParseMaterials(const json& materialsJson) {
         return false;
     }
 
-    int objectSize = objectJson.size();
-    numMeshes = objectSize;
-    cudaMalloc(&meshes, objectSize * sizeof(MeshData));
-    hostMeshes = new MeshData[objectSize];
-
     std::vector<Triangle> tris;
-    std::vector<Vertex> vertices;
+    std::vector<MeshData> meshList;
 
     printf("Vertex size: %llu, offset of Normal: %llu\n", sizeof(Vertex), offsetof(Vertex, normal));
 
-    for(int i = 0; i < numMeshes; i ++){
-        MeshData mesh;
-        auto& objJson = objectJson[i];
+    for (int objectIndex = 0; objectIndex < objectJson.size(); objectIndex++) {
+        auto &objJson = objectJson[objectIndex];
 
         if (!objJson.contains("name") || !objJson.contains("path")) {
             std::cout << "Error: Object missing 'name' or 'path' field" << std::endl;
             continue;
         }
-
-        int materialId = -1;
-        if (objJson.contains("material")) {
-            std::string matName = objJson["material"];
-            if (materialMap.find(matName) != materialMap.end()) {
-                materialId = materialMap[matName];
-            } else {
-                std::cout << "Warning: Material '" << matName << "' not found for object '" << objJson["name"] << "'" << std::endl;
-            }
-        } else {
-            std::cout << "Warning: Object '" << objJson["name"] << "' has no material specified" << std::endl;
-        }
-
-        mesh.name = objJson["name"];
-        mesh.meshID = i;
-        meshMap[mesh.name] = i;
-        mesh.materialID = materialId;
 
         std::string path = objJson["path"];
         Mat4f transform = Mat4f::Identity();
@@ -397,49 +447,92 @@ bool Scene::ParseMaterials(const json& materialsJson) {
 
         transform = translate * rotate * scale;
         Mat4f transformInv = transform.inverse();
-        std::vector<Triangle> objectTris = LoadObject(path, i, transform, transformInv);
-        std::vector<Vertex> vertices;
-        mesh.startTriangleID = tris.size();
-        mesh.numTriangles = objectTris.size();
-        for(auto& tri : objectTris)mesh.area += tri.area, tri.meshID = mesh.meshID, vertices.push_back(tri.v0), vertices.push_back(tri.v1), vertices.push_back(tri.v2);
-        mesh.transform = transform;
-        mesh.transformInv = transformInv;
-        hostMeshes[i] = mesh;
 
-        // std::cout << "Creating OpenGL buffers for mesh: " << mesh.name << std::endl;
-        // std::cout << "Number of vertices: " << vertices.size() << std::endl;
+        std::vector<LoadedOBJMesh> loadedMeshes = LoadObject(path, transform, transformInv);
+        if (loadedMeshes.empty()) {
+            std::cout << "Warning: Object '" << objJson["name"] << "' produced no meshes" << std::endl;
+            continue;
+        }
 
-        // OpenGL buffers
-        // for(int i = 0; i < vertices.size(); i++){
-        //     std::cout << "Vertex " << i << ": Position(" << vertices[i].position(0) << ", " << vertices[i].position(1) << ", " << vertices[i].position(2) << "), Normal(" << vertices[i].normal(0) << ", " << vertices[i].normal(1) << ", " << vertices[i].normal(2) << "), TexCoord(" << vertices[i].texCoord(0) << ", " << vertices[i].texCoord(1) << ")" << std::endl;
-        // }
-        glGenVertexArrays(1, &hostMeshes[i].vao);
-        glGenBuffers(1, &hostMeshes[i].vbo);
-        glBindVertexArray(hostMeshes[i].vao);
-        glBindBuffer(GL_ARRAY_BUFFER, hostMeshes[i].vbo);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
-        glEnableVertexAttribArray(3);
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, barycentricCoords));
-        glBindVertexArray(0);
+        bool expanded = loadedMeshes.size() > 1;
+        for (LoadedOBJMesh &loadedMesh : loadedMeshes) {
+            if (loadedMesh.triangles.empty()) {
+                continue;
+            }
 
-        std::cout << "Loaded object: " << mesh.name << ", triangles: " << mesh.numTriangles << ", meshID: " << mesh.meshID << std::endl;
-        tris.insert(tris.end(), objectTris.begin(), objectTris.end());
-        CreateMeshData(&mesh, &meshes[i]);
+            std::string materialName = ResolveMaterialName(objJson, loadedMesh, materialMap);
+            if (materialName.empty() || materialMap.find(materialName) == materialMap.end()) {
+                std::cout << "Warning: No valid material binding for imported mesh '" << loadedMesh.name
+                          << "' from object '" << objJson["name"] << "'" << std::endl;
+                continue;
+            }
+
+            MeshData mesh;
+            mesh.name = BuildSceneMeshName(objJson, loadedMesh, expanded);
+            mesh.meshID = static_cast<int>(meshList.size());
+            mesh.materialID = materialMap[materialName];
+            mesh.startTriangleID = static_cast<int>(tris.size());
+            mesh.numTriangles = static_cast<int>(loadedMesh.triangles.size());
+            mesh.transform = transform;
+            mesh.transformInv = transformInv;
+
+            for (Triangle &tri : loadedMesh.triangles) {
+                tri.meshID = mesh.meshID;
+                mesh.area += tri.area;
+                tris.push_back(tri);
+            }
+
+            glGenVertexArrays(1, &mesh.vao);
+            glGenBuffers(1, &mesh.vbo);
+            glBindVertexArray(mesh.vao);
+            glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo);
+            glBufferData(GL_ARRAY_BUFFER, loadedMesh.vertices.size() * sizeof(Vertex), loadedMesh.vertices.data(), GL_STATIC_DRAW);
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+            glEnableVertexAttribArray(2);
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
+            glEnableVertexAttribArray(3);
+            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, barycentricCoords));
+            glBindVertexArray(0);
+
+            std::cout << "Loaded object: " << mesh.name
+                      << ", triangles: " << mesh.numTriangles
+                      << ", meshID: " << mesh.meshID
+                      << ", material: " << materialName << std::endl;
+            meshMap[mesh.name] = mesh.meshID;
+            meshList.push_back(mesh);
+        }
     }
 
-    numTriangles = tris.size();
-    cudaMalloc(&triangles, numTriangles * sizeof(Triangle));
-    hostTriangles = new Triangle[numTriangles];
-    memcpy(hostTriangles, tris.data(), numTriangles * sizeof(Triangle));
-    for(int i = 0; i < numTriangles; i++){
-        CreateTriangle(&hostTriangles[i], &triangles[i]);
+    numMeshes = static_cast<int>(meshList.size());
+    std::cout << "Allocating mesh buffer for " << numMeshes << " meshes" << std::endl;
+    CHECK_CUDA_ERROR(cudaMalloc(&meshes, numMeshes * sizeof(MeshData)));
+    hostMeshes = new MeshData[numMeshes];
+    for (int i = 0; i < numMeshes; i++) {
+        hostMeshes[i] = meshList[i];
+        CreateMeshData(&hostMeshes[i], &meshes[i]);
     }
+
+    numTriangles = static_cast<int>(tris.size());
+    size_t triangleBytes = static_cast<size_t>(numTriangles) * sizeof(Triangle);
+    std::cout << "Preparing triangle buffer for " << numTriangles
+              << " triangles, sizeof(Triangle)=" << sizeof(Triangle)
+              << ", total bytes=" << triangleBytes << std::endl;
+    try {
+        hostTriangles = new Triangle[numTriangles];
+        std::cout << "Allocated host triangle buffer" << std::endl;
+    } catch (const std::bad_alloc&) {
+        std::cout << "Failed to allocate host triangle buffer" << std::endl;
+        throw;
+    }
+    memcpy(hostTriangles, tris.data(), triangleBytes);
+    std::cout << "Copied triangle data to host buffer" << std::endl;
+    CHECK_CUDA_ERROR(cudaMalloc(&triangles, triangleBytes));
+    std::cout << "Allocated device triangle buffer" << std::endl;
+    CHECK_CUDA_ERROR(cudaMemcpy(triangles, hostTriangles, triangleBytes, cudaMemcpyHostToDevice));
+    std::cout << "Copied triangle data to device buffer" << std::endl;
     return true;
 }
 
@@ -496,6 +589,7 @@ __host__ __device__ bool Scene::ParseLights(const json& lightsJson) {
             light.type = ENV_LIGHT;
             if(lightJson.contains("path")){
                 std::string path = lightJson["path"];
+                std::cout << "Loading environment light from: " << path << std::endl;
                 HDRTexture *hostEnvironmentMap = new HDRTexture(path);
                 printf("cudaTextureObj: %llu\n", hostEnvironmentMap -> cudaTextureObj);
                 HDRTexture *deviceEnvironmentMap;

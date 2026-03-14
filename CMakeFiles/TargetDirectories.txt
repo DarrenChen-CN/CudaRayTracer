@@ -1,3 +1,0 @@
-E:/code/projects/CudaRayTracer/CMakeFiles/CudaRayTracer.dir
-E:/code/projects/CudaRayTracer/CMakeFiles/ALL_BUILD.dir
-E:/code/projects/CudaRayTracer/CMakeFiles/ZERO_CHECK.dir

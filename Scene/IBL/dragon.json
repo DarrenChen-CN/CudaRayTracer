@@ -43,7 +43,7 @@
     "objects": [
         {
             "name": "dragon",
-            "path": "E://code/projects/CudaRayTracer/Model/Dragon/dragon.obj",
+            "path": "D://code/projects/CudaRayTracer/Model/Dragon/dragon.obj",
             "translate": [
                 0,
                 0,
@@ -63,7 +63,7 @@
         },
         {
             "name": "table",
-            "path": "E://code/projects/CudaRayTracer/Model/Table/table.obj",
+            "path": "D://code/projects/CudaRayTracer/Model/Table/table.obj",
             "translate": [
                 0,
                 -0.28,
@@ -86,7 +86,7 @@
         {
             "name": "envLight",
             "type": "env",
-            "path": "E://code/projects/CudaRayTracer/Image/HDR/brown_photostudio_02_4k.hdr"
+            "path": "D://code/projects/CudaRayTracer/Image/HDR/brown_photostudio_02_4k.hdr"
         }
     ]
 }

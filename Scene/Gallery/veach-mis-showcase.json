@@ -1,0 +1,348 @@
+{
+    "camera": {
+        "type": "pinhole",
+        "resolution": [
+            1280,
+            720
+        ],
+        "fov": 20.5,
+        "max_bounces": 8,
+        "rr": 0.65,
+        "spp": 8192,
+        "direction": [
+            1.0,
+            0.1,
+            0.0
+        ],
+        "denoise": false
+    },
+    "textures": [],
+    "materials": [
+        {
+            "name": "WallGray",
+            "type": "diffuse",
+            "basecolor": [
+                0.08,
+                0.08,
+                0.09
+            ]
+        },
+        {
+            "name": "FloorGray",
+            "type": "diffuse",
+            "basecolor": [
+                0.34,
+                0.34,
+                0.36
+            ]
+        },
+        {
+            "name": "PanelMirror",
+            "type": "pbr",
+            "basecolor": [
+                0.88,
+                0.88,
+                0.9
+            ],
+            "metallic": 0.72,
+            "roughness": 0.03
+        },
+        {
+            "name": "PanelGlossy",
+            "type": "pbr",
+            "basecolor": [
+                0.88,
+                0.88,
+                0.9
+            ],
+            "metallic": 0.7,
+            "roughness": 0.06
+        },
+        {
+            "name": "PanelSemiGloss",
+            "type": "pbr",
+            "basecolor": [
+                0.88,
+                0.88,
+                0.9
+            ],
+            "metallic": 0.66,
+            "roughness": 0.11
+        },
+        {
+            "name": "PanelRough",
+            "type": "pbr",
+            "basecolor": [
+                0.88,
+                0.88,
+                0.9
+            ],
+            "metallic": 0.6,
+            "roughness": 0.2
+        },
+        {
+            "name": "LightSmallMagenta",
+            "type": "light",
+            "emission": [
+                3000,
+                2790,
+                2520
+            ]
+        },
+        {
+            "name": "LightMediumWarm",
+            "type": "light",
+            "emission": [
+                120,
+                111.6,
+                100.8
+            ]
+        },
+        {
+            "name": "LightLargeGreen",
+            "type": "light",
+            "emission": [
+                30,
+                27.9,
+                25.2
+            ]
+        },
+        {
+            "name": "LightXLargeCyan",
+            "type": "light",
+            "emission": [
+                4,
+                3.72,
+                3.36
+            ]
+        }
+    ],
+    "objects": [
+        {
+            "name": "panel_1",
+            "path": "D:/code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_1.obj",
+            "translate": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0.0
+                }
+            ],
+            "material": "PanelMirror"
+        },
+        {
+            "name": "panel_2",
+            "path": "D:/code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_2.obj",
+            "translate": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0.0
+                }
+            ],
+            "material": "PanelGlossy"
+        },
+        {
+            "name": "panel_3",
+            "path": "D:/code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_3.obj",
+            "translate": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0.0
+                }
+            ],
+            "material": "PanelSemiGloss"
+        },
+        {
+            "name": "panel_4",
+            "path": "D:/code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_4.obj",
+            "translate": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0.0
+                }
+            ],
+            "material": "PanelRough"
+        },
+        {
+            "name": "light_1",
+            "path": "D:/code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_5.obj",
+            "translate": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0.0
+                }
+            ],
+            "material": "LightSmallMagenta"
+        },
+        {
+            "name": "light_2",
+            "path": "D:/code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_6.obj",
+            "translate": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0.0
+                }
+            ],
+            "material": "LightMediumWarm"
+        },
+        {
+            "name": "light_3",
+            "path": "D:/code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_7.obj",
+            "translate": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0.0
+                }
+            ],
+            "material": "LightLargeGreen"
+        },
+        {
+            "name": "light_4",
+            "path": "D:/code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_8.obj",
+            "translate": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0.0
+                }
+            ],
+            "material": "LightXLargeCyan"
+        },
+        {
+            "name": "wall",
+            "path": "D:/code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_9.obj",
+            "translate": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0.0
+                }
+            ],
+            "material": "WallGray"
+        },
+        {
+            "name": "floor",
+            "path": "D:/code/projects/CudaRayTracer/Model/VeachMIS/veach-mis_10.obj",
+            "translate": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "rotate": [
+                {
+                    "rotateX": 0.0
+                }
+            ],
+            "material": "FloorGray"
+        }
+    ],
+    "lights": [
+        {
+            "name": "Light0",
+            "type": "area",
+            "lightMeshName": "light_1",
+            "material": "LightSmallMagenta"
+        },
+        {
+            "name": "Light1",
+            "type": "area",
+            "lightMeshName": "light_2",
+            "material": "LightMediumWarm"
+        },
+        {
+            "name": "Light2",
+            "type": "area",
+            "lightMeshName": "light_3",
+            "material": "LightLargeGreen"
+        },
+        {
+            "name": "Light3",
+            "type": "area",
+            "lightMeshName": "light_4",
+            "material": "LightXLargeCyan"
+        }
+    ]
+}

@@ -1,0 +1,54 @@
+﻿{
+  "camera": {
+    "type": "pinhole",
+    "resolution": [1080, 1080],
+    "fov": 60.0,
+    "max_bounces": 8,
+    "rr": 0.6,
+    "spp": 20000,
+    "direction": [0.0, 0.0, -1.0],
+    "denoise": false
+  },
+  "textures": [
+    { "name": "MarryTexture", "path": "D:/code/projects/CudaRayTracer/Model/Characters/Marry/MC003_Kozakura_Mari.png" }
+  ],
+  "materials": [
+    { "name": "BackWall", "type": "diffuse", "basecolor": [0.93, 0.91, 0.89] },
+    { "name": "FloorWall", "type": "diffuse", "basecolor": [0.95, 0.94, 0.93] },
+    { "name": "LeftMint", "type": "diffuse", "basecolor": [0.87, 0.93, 0.90] },
+    { "name": "RightPink", "type": "diffuse", "basecolor": [0.94, 0.90, 0.92] },
+    { "name": "Light", "type": "light", "emission": [26.0, 26.0, 26.0] },
+    { "name": "PedestalLavender", "type": "diffuse", "basecolor": [0.90, 0.88, 0.92] },
+    { "name": "PedestalMint", "type": "diffuse", "basecolor": [0.88, 0.93, 0.87] },
+    { "name": "MarryTextured", "type": "diffuse", "basecolor": [1.0, 1.0, 1.0], "diffuse_texture": "MarryTexture" },
+    { "name": "RoseGlass", "type": "glass", "basecolor": [0.86, 0.67, 0.75], "ior": 1.52, "transmission": 1.0, "roughness": 0.0 },
+    { "name": "GoldDragon", "type": "pbr", "basecolor": [0.98, 0.81, 0.42], "metallic": 1.0, "roughness": 0.12 },
+    { "name": "JadeBunny", "type": "subsurface", "basecolor": [0.76, 0.93, 0.80], "scatter_distance": [6.5, 8.0, 5.5], "ior": 1.61, "roughness": 0.08 },
+    { "name": "LavenderGlass", "type": "glass", "basecolor": [0.82, 0.78, 0.96], "ior": 1.52, "transmission": 1.0, "roughness": 0.0 },
+    { "name": "GreenGlass", "type": "glass", "basecolor": [0.78, 0.93, 0.80], "ior": 1.52, "transmission": 1.0, "roughness": 0.0 },
+    { "name": "BronzeGloss", "type": "pbr", "basecolor": [0.55, 0.40, 0.31], "metallic": 1.0, "roughness": 0.20 }
+  ],
+  "objects": [
+    { "name": "light", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_1.obj", "translate": [0, -1, 0], "scale": [1, 1, 1], "rotate": [{ "rotateX": 0 }], "material": "Light" },
+    { "name": "floor", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_2.obj", "translate": [0, 0, 0], "scale": [1, 1, 1], "rotate": [{ "rotateX": 0 }], "material": "FloorWall" },
+    { "name": "ceiling", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_3.obj", "translate": [0, 0, 0], "scale": [1, 1, 1], "rotate": [{ "rotateX": 0 }], "material": "FloorWall" },
+    { "name": "back", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_4.obj", "translate": [0, 0, 0], "scale": [1, 1, 1], "rotate": [{ "rotateX": 0 }], "material": "BackWall" },
+    { "name": "right", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_5.obj", "translate": [0, 0, 0], "scale": [1, 1, 1], "rotate": [{ "rotateX": 0 }], "material": "RightPink" },
+    { "name": "left", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_6.obj", "translate": [0, 0, 0], "scale": [1, 1, 1], "rotate": [{ "rotateX": 0 }], "material": "LeftMint" },
+
+    { "name": "pedestal_left", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj", "translate": [56, 0, 248], "scale": [116, 108, 116], "rotate": [{ "rotateY": 0.0 }], "material": "PedestalMint" },
+    { "name": "pedestal_center", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj", "translate": [214, 0, 238], "scale": [128, 82, 128], "rotate": [{ "rotateY": 0.0 }], "material": "PedestalLavender" },
+    { "name": "pedestal_right", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj", "translate": [392, 0, 248], "scale": [116, 108, 116], "rotate": [{ "rotateY": 0.0 }], "material": "PedestalMint" },
+
+    { "name": "left_sphere", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/sphere.obj", "translate": [114, 184, 282], "scale": [76, 76, 76], "rotate": [{ "rotateY": 0.0 }], "material": "GreenGlass" },
+    { "name": "marry", "path": "D:/code/projects/CudaRayTracer/Model/Characters/Marry/Marry.obj", "translate": [278, 81.9, 276], "scale": [66, 66, 66], "rotate": [{ "rotateY": 188.0 }], "material": "MarryTextured" },
+    { "name": "right_sphere", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/sphere.obj", "translate": [450, 184, 306], "scale": [78, 78, 78], "rotate": [{ "rotateY": 0.0 }], "material": "RoseGlass" },
+
+    { "name": "dragon", "path": "D:/code/projects/CudaRayTracer/Model/Dragon/dragon.obj", "translate": [118, 50.9, 154], "scale": [180, 180, 180], "rotate": [{ "rotateY": 8.0 }], "material": "GoldDragon" },
+    { "name": "glass_ico", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/icosahedron.obj", "translate": [270, 46, 154], "scale": [54, 54, 54], "rotate": [{ "rotateY": 22.0 }, { "rotateX": 14.0 }], "material": "LavenderGlass" },
+    { "name": "bunny", "path": "D:/code/projects/CudaRayTracer/Model/Bunny/bunny144k.obj", "translate": [430, 19.2, 168], "scale": [38, 38, 38], "rotate": [{ "rotateY": -208.0 }], "material": "JadeBunny" }
+  ],
+  "lights": [
+    { "name": "Light0", "type": "area", "lightMeshName": "light", "material": "Light" }
+  ]
+}
