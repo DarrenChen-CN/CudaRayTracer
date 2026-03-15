@@ -24,7 +24,7 @@
 
 ![PBR](Result/pbr.png)
 
-### SSS
+### Subsurface Scattering
 
 
 ![Subsurface Scattering](Result/sss.png)
