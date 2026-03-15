@@ -17,7 +17,6 @@ __device__ Vec3f Material::Evaluate(Vec3f& wi, Vec3f& normal, Vec3f& wo, Vec2f &
         case DIFFUSE:
             return EvaluateDiffuse(wi, normal, wo, uv);
         case PBR:
-        case SUBSURFACE:
             return EvaluatePBR(wi, normal, wo, uv);
         case DIELECTRIC:
             return Vec3f(0.f, 0.f, 0.f);
@@ -34,7 +33,6 @@ __device__ void Material::Pdf(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf, V
             PdfDiffuse(wi, normal, wo, pdf, uv);
             break;
         case PBR:
-        case SUBSURFACE:
             PdfPBR(wi, normal, wo, pdf, uv);
             break;
         case DIELECTRIC:
@@ -53,8 +51,7 @@ __device__ void Material::Sample(Vec3f& wi, Vec3f& normal, Vec3f& wo, float& pdf
             SampleDiffuse(wi, normal, wo, pdf, sampler, idx, uv);
             break;
         case PBR:
-        case SUBSURFACE:
-            SamplePBR(wi, normal, wo, pdf, sampler, idx, uv); // use pbr sampling for subsurface default
+            SamplePBR(wi, normal, wo, pdf, sampler, idx, uv); 
             break;
         case DIELECTRIC: {
             Vec3f weight;

@@ -213,9 +213,9 @@ __device__ void PathTracing(RenderSegment &segment, IntersectionInfo &info, Rend
             Light *light = lightManager -> GetLight(lightID);
             float pdfLight;
             light -> SampleSolidAnglePDF(segment.ray, info.hitPoint, info.normal, pdfLight);
-            if (lightManager->numLights > 0) {
-                pdfLight *= 1.0f / lightManager->numLights;
-            }
+            // if (lightManager->numLights > 0) {
+            //     pdfLight *= 1.0f / lightManager->numLights;
+            // }
 
             float brdfMisWeight = MISWeight(segment.pdfBrdf, pdfLight, 2);
             segment.indirectColor += segment.weight.cwiseProduct(material.ke) * brdfMisWeight;
