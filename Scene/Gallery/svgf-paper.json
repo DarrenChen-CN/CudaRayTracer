@@ -1,0 +1,35 @@
+{
+  "camera": {
+    "type": "pinhole",
+    "resolution": [1024, 1024],
+    "fov": 39.3077,
+    "max_bounces": 3,
+    "rr": 1.0,
+    "spp": 512,
+    "direction": [0.0, 0.0, -1.0],
+    "target": [278.0, 220.0, 279.6],
+    "distance": 1000.0,
+    "denoise": true
+  },
+  "textures": [],
+  "materials": [
+    { "name": "WallWhite", "type": "diffuse", "basecolor": [0.79, 0.76, 0.73] },
+    { "name": "LeftWallRed", "type": "diffuse", "basecolor": [0.63, 0.065, 0.05] },
+    { "name": "RightWallGreen", "type": "diffuse", "basecolor": [0.14, 0.45, 0.091] },
+    { "name": "CeilingLight", "type": "light", "emission": [25.0, 25.0, 25.0] },
+    { "name": "BoxWhite", "type": "diffuse", "basecolor": [0.79, 0.76, 0.73] }
+  ],
+  "objects": [
+    { "name": "light", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_1.obj", "translate": [0.0, -1.0, 0.0], "material": "CeilingLight" },
+    { "name": "floor", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_2.obj", "material": "WallWhite" },
+    { "name": "ceiling", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_3.obj", "material": "WallWhite" },
+    { "name": "back", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_4.obj", "material": "WallWhite" },
+    { "name": "image_left_wall", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_5.obj", "material": "LeftWallRed" },
+    { "name": "image_right_wall", "path": "D:/code/projects/CudaRayTracer/Model/Cornellbox/cornell-box_6.obj", "material": "RightWallGreen" },
+    { "name": "tall_box", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj", "translate": [423.0, 0.0, 247.0], "scale": [166.4, 330.0, 165.4], "rotate": [{ "rotateY": -72.9 }], "material": "BoxWhite" },
+    { "name": "short_box", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj", "translate": [130.0, 0.0, 65.0], "scale": [167.3, 165.0, 167.0], "rotate": [{ "rotateY": -17.0 }], "material": "BoxWhite" }
+  ],
+  "lights": [
+    { "name": "Light0", "type": "area", "lightMeshName": "light", "material": "CeilingLight" }
+  ]
+}

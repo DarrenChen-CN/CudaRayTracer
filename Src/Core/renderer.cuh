@@ -6,6 +6,7 @@
 #include "camera.h"
 #include "lightmanager.h"
 #include <filesystem>
+#include <chrono>
 
 // Render kernel
 
@@ -55,17 +56,6 @@ struct GBuffer{
 struct RenderBuffer{
     float *directLightingBuffer; // rgb variance
     float *indirectLightingBuffer;
-};
-
-struct DenoiseParam{
-    float2 *directMoments[2];
-    float2 *indirectMoments[2];
-    int *historyLength[2];
-    int currentTemporalBufferIndex = 0;
-    int maxHistoryLength = 24;
-    float sigmaLight = 20.f;
-    float sigmaNormal = 128.f;
-    float sigmaDepth = 1.f;
 };
 
 cudaTextureObject_t CreateTextureObject(cudaArray_t cuArray, cudaTextureAddressMode addressMode, cudaTextureFilterMode filterMode, cudaTextureReadMode readMode)
@@ -449,7 +439,7 @@ __global__ void ShadingKernel(RenderSegment *segments, RenderParam renderParam, 
     segments[idx].remainingBounces--;
 }
 
-__device__ bool GetLastFramePos(int index, RenderParam renderParam, GBuffer currentGBuffer, GBuffer lastGBuffer, Vec2f &pixelPos){
+__device__ bool GetLastFramePos(int index, RenderParam renderParam, GBuffer currentGBuffer, GBuffer lastGBuffer, Vec2f &pixelPos, float reprojectionDepthFactor){
     int width = renderParam.width, height = renderParam.height;
     Vec2f currentPixelPos = BufferIndexToGBufferSamplePos(index, width, height);
     float4 positionTriID = tex2D<float4>(currentGBuffer.cudaTexObjPositionTriID, currentPixelPos(0), currentPixelPos(1));
@@ -488,7 +478,7 @@ __device__ bool GetLastFramePos(int index, RenderParam renderParam, GBuffer curr
     float depthDiff = fabsf(depth - lastDepth);
     float normalThreshold = 0.9;
     float pixelDistance = sqrtf(motionVec(0) * motionVec(0) + motionVec(1) * motionVec(1));
-    float depthThreshold = fmaxf(dz, lastMotionDepth.w) * (pixelDistance + 1.f) + 0.1f * fmaxf(depth, lastDepth);
+    float depthThreshold = fmaxf(dz, lastMotionDepth.w) * (pixelDistance + 1.f) + reprojectionDepthFactor * fmaxf(depth, lastDepth);
 
     if(meshID != lastMeshID || materialID != lastMaterialID || dotNormal < normalThreshold || depthDiff > depthThreshold){
         return false;
@@ -519,7 +509,7 @@ __device__ void TemporalDenoising(int index, RenderBuffer currentBuffer, RenderB
     }
 
     Vec2f pixelPos;
-    bool valid = GetLastFramePos(index, renderParam, currentGBuffer, lastGBuffer, pixelPos);
+    bool valid = GetLastFramePos(index, renderParam, currentGBuffer, lastGBuffer, pixelPos, denoiseParam.reprojectionDepthFactor);
     int lastFrameIndex = index;
     if(valid){
         int lastFrameX = max(0, min(renderParam.width - 1, (int)floorf(pixelPos(0))));
@@ -530,6 +520,10 @@ __device__ void TemporalDenoising(int index, RenderBuffer currentBuffer, RenderB
     int historyLength = valid ? min(lastHistoryLengthBuffer[lastFrameIndex] + 1, denoiseParam.maxHistoryLength) : 1;
     float alpha = valid ? 1.f / historyLength : 1.0f;
 
+    Vec3f currentDirectColor = Vec3f(currentBuffer.directLightingBuffer[index * 4 + 0], currentBuffer.directLightingBuffer[index * 4 + 1], currentBuffer.directLightingBuffer[index * 4 + 2]);
+    Vec3f currentIndirectColor = Vec3f(currentBuffer.indirectLightingBuffer[index * 4 + 0], currentBuffer.indirectLightingBuffer[index * 4 + 1], currentBuffer.indirectLightingBuffer[index * 4 + 2]);
+    float currentDirectLuminance = Luminance(currentDirectColor);
+    float currentIndirectLuminance = Luminance(currentIndirectColor);
     currentBuffer.directLightingBuffer[index * 4 + 0] = alpha * currentBuffer.directLightingBuffer[index * 4 + 0] + (1 - alpha) * lastBuffer.directLightingBuffer[lastFrameIndex * 4 + 0];
     currentBuffer.directLightingBuffer[index * 4 + 1] = alpha * currentBuffer.directLightingBuffer[index * 4 + 1] + (1 - alpha) * lastBuffer.directLightingBuffer[lastFrameIndex * 4 + 1];
     currentBuffer.directLightingBuffer[index * 4 + 2] = alpha * currentBuffer.directLightingBuffer[index * 4 + 2] + (1 - alpha) * lastBuffer.directLightingBuffer[lastFrameIndex * 4 + 2];
@@ -541,12 +535,10 @@ __device__ void TemporalDenoising(int index, RenderBuffer currentBuffer, RenderB
     float2 &indirectMoment = currentIndirectMoments[index];
     float2 lastDirectMoment = valid ? lastDirectMomentsBuffer[lastFrameIndex] : make_float2(0.f, 0.f);
     float2 lastIndirectMoment = valid ? lastIndirectMomentsBuffer[lastFrameIndex] : make_float2(0.f, 0.f);
-    float directLuminance = Luminance(Vec3f(currentBuffer.directLightingBuffer[index * 4 + 0], currentBuffer.directLightingBuffer[index * 4 + 1], currentBuffer.directLightingBuffer[index * 4 + 2]));
-    float indirectLuminance = Luminance(Vec3f(currentBuffer.indirectLightingBuffer[index * 4 + 0], currentBuffer.indirectLightingBuffer[index * 4 + 1], currentBuffer.indirectLightingBuffer[index * 4 + 2]));
-    directMoment.x = alpha * directLuminance + (1 - alpha) * lastDirectMoment.x;
-    directMoment.y = alpha * directLuminance * directLuminance + (1 - alpha) * lastDirectMoment.y;
-    indirectMoment.x = alpha * indirectLuminance + (1 - alpha) * lastIndirectMoment.x;
-    indirectMoment.y = alpha * indirectLuminance * indirectLuminance + (1 - alpha) * lastIndirectMoment.y;
+    directMoment.x = alpha * currentDirectLuminance + (1 - alpha) * lastDirectMoment.x;
+    directMoment.y = alpha * currentDirectLuminance * currentDirectLuminance + (1 - alpha) * lastDirectMoment.y;
+    indirectMoment.x = alpha * currentIndirectLuminance + (1 - alpha) * lastIndirectMoment.x;
+    indirectMoment.y = alpha * currentIndirectLuminance * currentIndirectLuminance + (1 - alpha) * lastIndirectMoment.y;
     if(valid){
         currentBuffer.directLightingBuffer[index * 4 + 3] = directMoment.y - directMoment.x * directMoment.x;
         currentBuffer.indirectLightingBuffer[index * 4 + 3] = indirectMoment.y - indirectMoment.x * indirectMoment.x;
@@ -639,7 +631,8 @@ __global__ void ComputeVarianceKernel(DenoiseParam denoiseParam, RenderParam ren
                     float dist = sqrtf(float(ki * ki + kj * kj));
                     float wz = -fabsf(centerDepth - nDepth) / (sigmaDepth * dist + 1e-4f);
                     float wn = powf(fmaxf(0.f, centerNormal.dot(nNormal)), denoiseParam.sigmaNormal);
-                    float wDirect = -fabsf(centerDirectLuminance - nDirectLuminance) / (denoiseParam.sigmaLight / sqrtf(centerDirectLuminance));
+                    float directLumaRef = fmaxf(fmaxf(centerDirectLuminance, nDirectLuminance), 1e-4f);
+                    float wDirect = -fabsf(centerDirectLuminance - nDirectLuminance) / (denoiseParam.sigmaLight / sqrtf(directLumaRef));
                     float wIndirect = -fabsf(centerIndirectLuminance - nIndirectLuminance) / (denoiseParam.sigmaLight / sqrtf(centerIndirectLuminance));
 
                     float dWeight = expf(wz + wDirect) * wn;
@@ -694,6 +687,8 @@ __global__ void AtrousKernel(DenoiseParam denoiseParam, CameraParam cameraParam,
     if (i >= width || j >= height) return;
 
     int idx = j * width + i;
+    int *currentHistoryLength = denoiseParam.historyLength[denoiseParam.currentTemporalBufferIndex];
+    int centerHistoryLength = max(currentHistoryLength[idx], 1);
     int sampleY = BufferYToGBufferY(j, height);
     float sampleXf = (float)i + 0.5f;
     float sampleYf = (float)sampleY + 0.5f;
@@ -726,7 +721,11 @@ __global__ void AtrousKernel(DenoiseParam denoiseParam, CameraParam cameraParam,
     float directVariance = 0.f;
     float indirectVariance = 0.f;
 
-    float sigmaDepth = 1000 * fmaxf(dz, 1e-4f);
+    float bootstrap = fminf(1.f, fmaxf(0.f, (4.f - (float)centerHistoryLength) / 3.f));
+    float sigmaDepth = fmaxf(denoiseParam.sigmaDepth, 1e-3f) * fmaxf(dz, 1e-4f) * (1.f + 2.5f * bootstrap);
+    float sigmaLightDirect = denoiseParam.sigmaLight * (1.f + 2.0f * bootstrap);
+    float sigmaLightIndirect = denoiseParam.sigmaLight * (1.f + 1.5f * bootstrap);
+    float sigmaNormal = fmaxf(8.f, denoiseParam.sigmaNormal * (1.f - 0.85f * bootstrap));
     
     const float kernelWeights[3] = {3.f / 8.f, 1.f / 4.f, 1.f / 16.f};
 
@@ -737,6 +736,7 @@ __global__ void AtrousKernel(DenoiseParam denoiseParam, CameraParam cameraParam,
 
             if(ni >= 0 && ni < width && nj >= 0 && nj < height){
                 int nidx = nj * width + ni;
+                int neighborHistoryLength = max(currentHistoryLength[nidx], 1);
                 int neighborSampleY = BufferYToGBufferY(nj, height);
                 float neighborSampleXf = (float)ni + 0.5f;
                 float neighborSampleYf = (float)neighborSampleY + 0.5f;
@@ -759,15 +759,18 @@ __global__ void AtrousKernel(DenoiseParam denoiseParam, CameraParam cameraParam,
 
                 float dist = sqrtf(float(ki * ki + kj * kj)) * stepSize;
                 float wz = -fabsf(centerDepth - nDepth) / (sigmaDepth * dist + 1e-6f);
-                float wn = powf(fmaxf(0.f, centerNormal.dot(nNormal)), denoiseParam.sigmaNormal);
+                float wn = powf(fmaxf(0.f, centerNormal.dot(nNormal)), sigmaNormal);
                 float directLuminance = Luminance(nDirectColor);
                 float indirectLuminance = Luminance(nIndirectColor);
-                float wDirect = -fabsf(centerDirectLuminance - directLuminance) / (denoiseParam.sigmaLight * stdDevDirect / sqrtf(centerDirectLuminance));
-                float wIndirect = -fabsf(centerIndirectLuminance - indirectLuminance) / (denoiseParam.sigmaLight * stdDevIndirect / sqrtf(centerIndirectLuminance));
+                float directLumaRef = fmaxf(fmaxf(centerDirectLuminance, directLuminance), 1e-4f);
+                float indirectLumaRef = fmaxf(centerIndirectLuminance, 1e-4f);
+                float wDirect = -fabsf(centerDirectLuminance - directLuminance) / (sigmaLightDirect * stdDevDirect / sqrtf(directLumaRef));
+                float wIndirect = -fabsf(centerIndirectLuminance - indirectLuminance) / (sigmaLightIndirect * stdDevIndirect / sqrtf(indirectLumaRef));
+                float historyConfidence = bootstrap > 0.f ? (0.5f + 0.5f * fminf((float)neighborHistoryLength / 4.f, 1.f)) : 1.f;
 
                 float kWeight = kernelWeights[abs(ki)] * kernelWeights[abs(kj)];
-                float dWeight = expf(wz + wDirect) * wn * kWeight;
-                float iWeight = expf(wz + wIndirect) * wn * kWeight;
+                float dWeight = expf(wz + wDirect) * wn * kWeight * historyConfidence;
+                float iWeight = expf(wz + wIndirect) * wn * kWeight * historyConfidence;
 
                 finalDirectColor += dWeight * nDirectColor;
                 finalIndirectColor += iWeight * nIndirectColor;
@@ -957,28 +960,56 @@ public:
 
     __host__ void RenderLoop(){
         bool firstFrame = true;
+        using Clock = std::chrono::high_resolution_clock;
         while (!glfwWindowShouldClose(ui -> window))
         {
             RenderBuffer renderBuffer = renderParam.currentRenderBufferIndex == 0 ? renderBuffers[0] : renderBuffers[1];
             RenderBuffer lastRenderBuffer = renderParam.currentRenderBufferIndex == 0 ? renderBuffers[1] : renderBuffers[0];
+            int temporalHistoryWriteIndex = denoiseParam.currentTemporalBufferIndex;
+            int temporalHistoryReadIndex = 1 - temporalHistoryWriteIndex;
+            RenderBuffer temporalHistoryCurrent = temporalHistoryBuffers[temporalHistoryWriteIndex];
+            RenderBuffer temporalHistoryLast = temporalHistoryBuffers[temporalHistoryReadIndex];
             GBuffer gBuffer = renderParam.currentGBufferIndex == 0 ? gBuffers[0] : gBuffers[1];
             GBuffer lastGBuffer = renderParam.currentGBufferIndex == 0 ? gBuffers[1] : gBuffers[0];
-            ui -> GuiBegin(sppCounter, framebufferReset);
+            bool hardResetDenoiseHistory = false;
+            ui -> GuiBegin(sppCounter, framebufferReset, renderParam, denoiseParam, denoiseTimingStats, hardResetDenoiseHistory);
             if(framebufferReset){
                 sppCounter = 0;
                 cudaMemset(renderBuffer.directLightingBuffer, 0, sizeof(float) * 4 * renderParam.width * renderParam.height);
                 cudaMemset(renderBuffer.indirectLightingBuffer, 0, sizeof(float) * 4 * renderParam.width * renderParam.height);
+                if(hardResetDenoiseHistory){
+                    size_t historyBytes = sizeof(float) * 4 * renderParam.width * renderParam.height;
+                    size_t momentBytes = sizeof(float2) * renderParam.width * renderParam.height;
+                    size_t historyLenBytes = sizeof(int) * renderParam.width * renderParam.height;
+                    cudaMemset(temporalHistoryBuffers[0].directLightingBuffer, 0, historyBytes);
+                    cudaMemset(temporalHistoryBuffers[0].indirectLightingBuffer, 0, historyBytes);
+                    cudaMemset(temporalHistoryBuffers[1].directLightingBuffer, 0, historyBytes);
+                    cudaMemset(temporalHistoryBuffers[1].indirectLightingBuffer, 0, historyBytes);
+                    for(int i = 0; i < 2; i++){
+                        cudaMemset(denoiseParam.directMoments[i], 0, momentBytes);
+                        cudaMemset(denoiseParam.indirectMoments[i], 0, momentBytes);
+                        cudaMemset(denoiseParam.historyLength[i], 0, historyLenBytes);
+                    }
+                    denoiseParam.currentTemporalBufferIndex = 0;
+                    firstFrame = true;
+                }
                 framebufferReset = false;
             }
 
             if(sppCounter < renderParam.spp || renderParam.denoise){
+                auto frameStart = Clock::now();
+                DenoiseTimingStats frameTimings = {};
+
+                auto gbufferStart = Clock::now();
                 RenderGBuffer(renderParam, cameraParam);
+                auto gbufferEnd = Clock::now();
                 sppCounter++;
 
                 // Rendering pipeline start
                 int width = renderParam.width, height = renderParam.height;
                 int maxBounces = renderParam.maxBounces;
                 int numSegments = width * height;
+                auto pathTraceStart = Clock::now();
                 // 1. Generate rays
                 generateRayGridSize = dim3((width + generateRayBlockSize.x - 1) / generateRayBlockSize.x, (height + generateRayBlockSize.y - 1) / generateRayBlockSize.y);
                 GenerateRayKernel<<<generateRayGridSize, generateRayBlockSize>>>(renderSegments, renderParam, cameraParam);
@@ -1015,6 +1046,7 @@ public:
                     // stream compaction
                     numSegments = StreamCompaction(segmentValidFlags, segmentPos, numSegments);
                 }
+                auto pathTraceEnd = Clock::now();
                 
                 // map cuda resource
                 cudaGraphicsMapResources(1, &gBuffer.cudaPositionTriIDResource, 0);
@@ -1031,40 +1063,62 @@ public:
                 if(renderParam.denoise){
                     denoiseGridSize = dim3((width + denoiseBlockSize.x - 1) / denoiseBlockSize.x, (height + denoiseBlockSize.y - 1) / denoiseBlockSize.y);
                     // Temporal denoising
-                    TemporalDenoiseKernel<<<denoiseGridSize, denoiseBlockSize>>>(denoiseParam, cameraParam, renderParam, renderBuffer, lastRenderBuffer, gBuffer, lastGBuffer, firstFrame);
+                    auto temporalStart = Clock::now();
+                    TemporalDenoiseKernel<<<denoiseGridSize, denoiseBlockSize>>>(denoiseParam, cameraParam, renderParam, renderBuffer, temporalHistoryLast, gBuffer, lastGBuffer, firstFrame);
+                    cudaDeviceSynchronize();
+                    CHECK_CUDA_ERROR(cudaGetLastError());
+                    size_t temporalHistoryBytes = sizeof(float) * 4 * width * height;
+                    cudaMemcpy(temporalHistoryCurrent.directLightingBuffer, renderBuffer.directLightingBuffer, temporalHistoryBytes, cudaMemcpyDeviceToDevice);
+                    cudaMemcpy(temporalHistoryCurrent.indirectLightingBuffer, renderBuffer.indirectLightingBuffer, temporalHistoryBytes, cudaMemcpyDeviceToDevice);
+                    auto temporalEnd = Clock::now();
 
                     // Computing Variance
+                    auto varianceStart = Clock::now();
                     int varianceKernelSize = 7; // 7x7 kernel
                     RenderBuffer current = renderParam.currentRenderBufferIndex == 0 ? renderBuffers[0] : renderBuffers[1];
                     RenderBuffer last = renderParam.currentRenderBufferIndex == 0 ? renderBuffers[1] : renderBuffers[0];
                     ComputeVarianceKernel<<<denoiseGridSize, denoiseBlockSize>>>(denoiseParam, renderParam, current, last, gBuffer, varianceKernelSize);
+                    cudaDeviceSynchronize();
+                    CHECK_CUDA_ERROR(cudaGetLastError());
+                    auto varianceEnd = Clock::now();
                     renderParam.currentRenderBufferIndex = 1 - renderParam.currentRenderBufferIndex;
 
                     // Remove albedo
                     // RemoveAlbedoKernel<<<denoiseGridSize, denoiseBlockSize>>>(renderParam, renderBuffer);
 
                     // Atrous denoising
+                    frameTimings.atrousMs = 0.f;
                     if(!firstFrame){
-                        for(int i = 0; i < 5; i ++){
+                        int atrousPasses = max(1, min(8, denoiseParam.atrousIterations));
+                        for(int i = 0; i < atrousPasses; i ++){
+                            auto atrousStart = Clock::now();
                             int stepSize = 1 << i;
                             current = renderParam.currentRenderBufferIndex == 0 ? renderBuffers[0] : renderBuffers[1];
                             last = renderParam.currentRenderBufferIndex == 0 ? renderBuffers[1] : renderBuffers[0];
                             AtrousKernel<<<denoiseGridSize, denoiseBlockSize>>>(denoiseParam, cameraParam, renderParam, current, last, gBuffer, stepSize);
                             cudaDeviceSynchronize();
                             CHECK_CUDA_ERROR(cudaGetLastError());
+                            auto atrousEnd = Clock::now();
+                            frameTimings.atrousMs += std::chrono::duration<float, std::milli>(atrousEnd - atrousStart).count();
                             renderParam.currentRenderBufferIndex = 1 - renderParam.currentRenderBufferIndex;
                         }
                     }
 
                     // // Restore albedo
                     // RestoreAlbedoKernel<<<denoiseGridSize, denoiseBlockSize>>>(renderParam, renderBuffer);
+
+                    frameTimings.temporalMs = std::chrono::duration<float, std::milli>(temporalEnd - temporalStart).count();
+                    frameTimings.varianceMs = std::chrono::duration<float, std::milli>(varianceEnd - varianceStart).count();
+                    frameTimings.svgfTotalMs = frameTimings.temporalMs + frameTimings.varianceMs + frameTimings.atrousMs;
                 }
 
                 // 5. Gather
+                auto gatherStart = Clock::now();
                 RenderBuffer currentRenderBuffer = renderParam.currentRenderBufferIndex == 0 ? renderBuffers[0] : renderBuffers[1];
                 gatherGridSize = dim3((width + gatherBlockSize.x - 1) / gatherBlockSize.x, (height + gatherBlockSize.y - 1) / gatherBlockSize.y);
                 GatherKernel<<<gatherGridSize, gatherBlockSize>>>(pixels, currentRenderBuffer, gBuffer, sppCounter, renderParam, cameraParam, denoiseParam);
                 cudaDeviceSynchronize();
+                auto gatherEnd = Clock::now();
 
                 cudaGraphicsUnmapResources(1, &gBuffer.cudaPositionTriIDResource, 0);
                 cudaGraphicsUnmapResources(1, &gBuffer.cudaNormalMatIDResource, 0);
@@ -1077,6 +1131,14 @@ public:
                 cudaGraphicsUnmapResources(1, &lastGBuffer.cudaMotionDepthResource, 0);
                 ui -> shader -> Unuse();
                 firstFrame = false;
+                frameTimings.gbufferMs = std::chrono::duration<float, std::milli>(gbufferEnd - gbufferStart).count();
+                frameTimings.pathTraceMs = std::chrono::duration<float, std::milli>(pathTraceEnd - pathTraceStart).count();
+                frameTimings.gatherMs = std::chrono::duration<float, std::milli>(gatherEnd - gatherStart).count();
+                frameTimings.totalMs = std::chrono::duration<float, std::milli>(gatherEnd - frameStart).count();
+                frameTimings.valid = renderParam.denoise;
+                if(renderParam.denoise){
+                    denoiseTimingStats = frameTimings;
+                }
                 // Rendering pipeline end
             }
             
@@ -1123,6 +1185,14 @@ public:
         cudaMalloc(&renderBuffers[0].indirectLightingBuffer, sizeof(float) * 4 * width * height);
         cudaMalloc(&renderBuffers[1].directLightingBuffer, sizeof(float) * 4 * width * height);
         cudaMalloc(&renderBuffers[1].indirectLightingBuffer, sizeof(float) * 4 * width * height);
+        cudaMalloc(&temporalHistoryBuffers[0].directLightingBuffer, sizeof(float) * 4 * width * height);
+        cudaMalloc(&temporalHistoryBuffers[0].indirectLightingBuffer, sizeof(float) * 4 * width * height);
+        cudaMalloc(&temporalHistoryBuffers[1].directLightingBuffer, sizeof(float) * 4 * width * height);
+        cudaMalloc(&temporalHistoryBuffers[1].indirectLightingBuffer, sizeof(float) * 4 * width * height);
+        cudaMemset(temporalHistoryBuffers[0].directLightingBuffer, 0, sizeof(float) * 4 * width * height);
+        cudaMemset(temporalHistoryBuffers[0].indirectLightingBuffer, 0, sizeof(float) * 4 * width * height);
+        cudaMemset(temporalHistoryBuffers[1].directLightingBuffer, 0, sizeof(float) * 4 * width * height);
+        cudaMemset(temporalHistoryBuffers[1].indirectLightingBuffer, 0, sizeof(float) * 4 * width * height);
 
         // Initialize denoise buffer
         for(int i = 0; i < 2; i++){
@@ -1299,6 +1369,10 @@ public:
         cudaFree(renderBuffers[0].indirectLightingBuffer);
         cudaFree(renderBuffers[1].directLightingBuffer);
         cudaFree(renderBuffers[1].indirectLightingBuffer);
+        cudaFree(temporalHistoryBuffers[0].directLightingBuffer);
+        cudaFree(temporalHistoryBuffers[0].indirectLightingBuffer);
+        cudaFree(temporalHistoryBuffers[1].directLightingBuffer);
+        cudaFree(temporalHistoryBuffers[1].indirectLightingBuffer);
         for(int i = 0; i < 2; i++){
             cudaFree(denoiseParam.directMoments[i]);
             cudaFree(denoiseParam.indirectMoments[i]);
@@ -1319,8 +1393,10 @@ public:
     UI *ui;
     uchar4* pixels;
     RenderBuffer renderBuffers[2];
+    RenderBuffer temporalHistoryBuffers[2];
     GBuffer gBuffers[2];
     DenoiseParam denoiseParam;
+    DenoiseTimingStats denoiseTimingStats;
     size_t numBytes;
     int sppCounter = 0;
     bool framebufferReset = false;

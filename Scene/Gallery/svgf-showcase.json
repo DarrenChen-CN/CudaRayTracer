@@ -1,42 +1,365 @@
 {
   "camera": {
     "type": "pinhole",
-    "resolution": [1080, 1080],
+    "resolution": [
+      720,
+      720
+    ],
     "fov": 39.3077,
-    "max_bounces": 2,
+    "max_bounces": 3,
     "rr": 0.6,
-    "spp": 512,
-    "direction": [0, 0, -1],
+    "spp": 4096,
+    "direction": [
+      0,
+      0,
+      -1
+    ],
     "denoise": false
   },
   "textures": [],
   "materials": [
-    { "name": "RoomWhite", "type": "diffuse", "basecolor": [0.79, 0.76, 0.73] },
-    { "name": "FloorGray", "type": "diffuse", "basecolor": [0.55, 0.55, 0.58] },
-    { "name": "LeftWall", "type": "diffuse", "basecolor": [0.63, 0.065, 0.05] },
-    { "name": "RightWall", "type": "diffuse", "basecolor": [0.14, 0.45, 0.091] },
-    { "name": "CeilingLight", "type": "light", "emission": [24.0, 24.0, 24.0] },
-    { "name": "ClayRed", "type": "diffuse", "basecolor": [0.72, 0.34, 0.28] },
-    { "name": "CobaltBlue", "type": "diffuse", "basecolor": [0.22, 0.36, 0.72] },
-    { "name": "MossGreen", "type": "diffuse", "basecolor": [0.28, 0.52, 0.31] },
-    { "name": "WarmYellow", "type": "diffuse", "basecolor": [0.75, 0.66, 0.28] },
-    { "name": "SoftGray", "type": "diffuse", "basecolor": [0.62, 0.62, 0.64] }
+    {
+      "name": "RoomWhite",
+      "type": "diffuse",
+      "basecolor": [
+        0.79,
+        0.76,
+        0.73
+      ]
+    },
+    {
+      "name": "FloorGray",
+      "type": "diffuse",
+      "basecolor": [
+        0.55,
+        0.55,
+        0.58
+      ]
+    },
+    {
+      "name": "LeftWall",
+      "type": "diffuse",
+      "basecolor": [
+        0.63,
+        0.065,
+        0.05
+      ]
+    },
+    {
+      "name": "RightWall",
+      "type": "diffuse",
+      "basecolor": [
+        0.14,
+        0.45,
+        0.091
+      ]
+    },
+    {
+      "name": "CeilingLight",
+      "type": "light",
+      "emission": [
+        24.0,
+        24.0,
+        24.0
+      ]
+    },
+    {
+      "name": "ClayRed",
+      "type": "diffuse",
+      "basecolor": [
+        0.72,
+        0.34,
+        0.28
+      ]
+    },
+    {
+      "name": "CobaltBlue",
+      "type": "diffuse",
+      "basecolor": [
+        0.22,
+        0.36,
+        0.72
+      ]
+    },
+    {
+      "name": "MossGreen",
+      "type": "diffuse",
+      "basecolor": [
+        0.28,
+        0.52,
+        0.31
+      ]
+    },
+    {
+      "name": "WarmYellow",
+      "type": "diffuse",
+      "basecolor": [
+        0.75,
+        0.66,
+        0.28
+      ]
+    },
+    {
+      "name": "SoftGray",
+      "type": "diffuse",
+      "basecolor": [
+        0.62,
+        0.62,
+        0.64
+      ]
+    }
   ],
   "objects": [
-    { "name": "front_wall", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane.obj", "translate": [1200, 0, 1800], "scale": [1200, 760, 1], "rotate": [{ "rotateY": 180.0 }], "material": "RoomWhite" },
-    { "name": "left_wall", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane.obj", "translate": [0, 0, 1800], "scale": [1800, 760, 1], "rotate": [{ "rotateY": 90.0 }], "material": "LeftWall" },
-    { "name": "right_wall", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane.obj", "translate": [1200, 0, 0], "scale": [1800, 760, 1], "rotate": [{ "rotateY": -90.0 }], "material": "RightWall" },
-    { "name": "floor", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane.obj", "translate": [0, 0, 1800], "scale": [1200, 1800, 1], "rotate": [{ "rotateX": -90.0 }], "material": "FloorGray" },
-    { "name": "ceiling", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane.obj", "translate": [0, 760, 0], "scale": [1200, 1800, 1], "rotate": [{ "rotateX": 90.0 }], "material": "RoomWhite" },
-    { "name": "light_plane", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane.obj", "translate": [430, 756, 620], "scale": [340, 340, 1], "rotate": [{ "rotateX": 90.0 }], "material": "CeilingLight" },
-    { "name": "tall_box", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj", "translate": [180, 0, 560], "scale": [180, 320, 180], "rotate": [{ "rotateY": 18.0 }], "material": "ClayRed" },
-    { "name": "wide_box", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj", "translate": [410, 0, 980], "scale": [300, 90, 170], "rotate": [{ "rotateY": -14.0 }], "material": "SoftGray" },
-    { "name": "small_box", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj", "translate": [860, 0, 420], "scale": [140, 140, 140], "rotate": [{ "rotateY": 12.0 }], "material": "MossGreen" },
-    { "name": "sphere", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/sphere.obj", "translate": [760, 150, 760], "scale": [150, 150, 150], "rotate": [{ "rotateY": 0.0 }], "material": "CobaltBlue" },
-    { "name": "ico", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/icosahedron.obj", "translate": [1010, 118, 1180], "scale": [138, 138, 138], "rotate": [{ "rotateY": 26.0 }, { "rotateX": 18.0 }], "material": "WarmYellow" },
-    { "name": "pyramid", "path": "D:/code/projects/CudaRayTracer/Model/Primitives/pyramid.obj", "translate": [540, 0, 310], "scale": [135, 135, 120], "rotate": [{ "rotateY": 34.0 }], "material": "RoomWhite" }
+    {
+      "name": "front_wall",
+      "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane.obj",
+      "translate": [
+        120,
+        0,
+        180
+      ],
+      "scale": [
+        120,
+        76,
+        0.1
+      ],
+      "rotate": [
+        {
+          "rotateY": 180.0
+        }
+      ],
+      "material": "RoomWhite"
+    },
+    {
+      "name": "left_wall",
+      "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane.obj",
+      "translate": [
+        0,
+        0,
+        180
+      ],
+      "scale": [
+        180,
+        76,
+        0.1
+      ],
+      "rotate": [
+        {
+          "rotateY": 90.0
+        }
+      ],
+      "material": "LeftWall"
+    },
+    {
+      "name": "right_wall",
+      "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane.obj",
+      "translate": [
+        120,
+        0,
+        0
+      ],
+      "scale": [
+        180,
+        76,
+        0.1
+      ],
+      "rotate": [
+        {
+          "rotateY": -90.0
+        }
+      ],
+      "material": "RightWall"
+    },
+    {
+      "name": "floor",
+      "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane.obj",
+      "translate": [
+        0,
+        0,
+        180
+      ],
+      "scale": [
+        120,
+        180,
+        0.1
+      ],
+      "rotate": [
+        {
+          "rotateX": -90.0
+        }
+      ],
+      "material": "FloorGray"
+    },
+    {
+      "name": "ceiling",
+      "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane.obj",
+      "translate": [
+        0,
+        76,
+        0
+      ],
+      "scale": [
+        120,
+        180,
+        0.1
+      ],
+      "rotate": [
+        {
+          "rotateX": 90.0
+        }
+      ],
+      "material": "RoomWhite"
+    },
+    {
+      "name": "light_plane",
+      "path": "D:/code/projects/CudaRayTracer/Model/Primitives/plane.obj",
+      "translate": [
+        43,
+        75.600000000000009,
+        62
+      ],
+      "scale": [
+        34,
+        34,
+        0.1
+      ],
+      "rotate": [
+        {
+          "rotateX": 90.0
+        }
+      ],
+      "material": "CeilingLight"
+    },
+    {
+      "name": "tall_box",
+      "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj",
+      "translate": [
+        18,
+        0,
+        56
+      ],
+      "scale": [
+        18,
+        32,
+        18
+      ],
+      "rotate": [
+        {
+          "rotateY": 18.0
+        }
+      ],
+      "material": "ClayRed"
+    },
+    {
+      "name": "wide_box",
+      "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj",
+      "translate": [
+        41,
+        0,
+        98
+      ],
+      "scale": [
+        30,
+        9,
+        17
+      ],
+      "rotate": [
+        {
+          "rotateY": -14.0
+        }
+      ],
+      "material": "SoftGray"
+    },
+    {
+      "name": "small_box",
+      "path": "D:/code/projects/CudaRayTracer/Model/Primitives/cube.obj",
+      "translate": [
+        86,
+        0,
+        42
+      ],
+      "scale": [
+        14,
+        14,
+        14
+      ],
+      "rotate": [
+        {
+          "rotateY": 12.0
+        }
+      ],
+      "material": "MossGreen"
+    },
+    {
+      "name": "sphere",
+      "path": "D:/code/projects/CudaRayTracer/Model/Primitives/sphere.obj",
+      "translate": [
+        76,
+        15,
+        76
+      ],
+      "scale": [
+        15,
+        15,
+        15
+      ],
+      "rotate": [
+        {
+          "rotateY": 0.0
+        }
+      ],
+      "material": "CobaltBlue"
+    },
+    {
+      "name": "ico",
+      "path": "D:/code/projects/CudaRayTracer/Model/Primitives/icosahedron.obj",
+      "translate": [
+        101,
+        11.8,
+        118
+      ],
+      "scale": [
+        13.8,
+        13.8,
+        13.8
+      ],
+      "rotate": [
+        {
+          "rotateY": 26.0
+        },
+        {
+          "rotateX": 18.0
+        }
+      ],
+      "material": "WarmYellow"
+    },
+    {
+      "name": "pyramid",
+      "path": "D:/code/projects/CudaRayTracer/Model/Primitives/pyramid.obj",
+      "translate": [
+        54,
+        0,
+        31
+      ],
+      "scale": [
+        13.5,
+        13.5,
+        12
+      ],
+      "rotate": [
+        {
+          "rotateY": 34.0
+        }
+      ],
+      "material": "RoomWhite"
+    }
   ],
   "lights": [
-    { "name": "Light0", "type": "area", "lightMeshName": "light_plane", "material": "CeilingLight" }
+    {
+      "name": "Light0",
+      "type": "area",
+      "lightMeshName": "light_plane",
+      "material": "CeilingLight"
+    }
   ]
 }

@@ -17,7 +17,10 @@ UI::UI(int width, int height) : width(width), height(height)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    window = glfwCreateWindow(width, height, "GPURayTracer", nullptr, nullptr);
+    windowWidth = width + sidebarWidth;
+    windowHeight = height;
+    renderOffsetX = sidebarWidth;
+    window = glfwCreateWindow(windowWidth, windowHeight, "GPURayTracer", nullptr, nullptr);
     if (!window)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -54,6 +57,9 @@ UI::UI(std::string configPath)
         }
         width = w;
         height = h;
+        windowWidth = width + sidebarWidth;
+        windowHeight = height;
+        renderOffsetX = sidebarWidth;
 
     } catch (const json::exception& e) {
         std::cerr << "JSON parsing error: " << e.what() << std::endl;
@@ -66,7 +72,7 @@ UI::UI(std::string configPath)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    window = glfwCreateWindow(width, height, "GPURayTracer", nullptr, nullptr);
+    window = glfwCreateWindow(windowWidth, windowHeight, "GPURayTracer", nullptr, nullptr);
     if (!window)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -96,8 +102,12 @@ void UI::Resize(int newWidth, int newHeight)
 {
     width = newWidth;
     height = newHeight;
-    glfwSetWindowSize(window, width, height);
-    std::cout << "UI resized to width: " << width << ", height: " << height << std::endl;
+    windowWidth = width + sidebarWidth;
+    windowHeight = height;
+    renderOffsetX = sidebarWidth;
+    glfwSetWindowSize(window, windowWidth, windowHeight);
+    std::cout << "UI resized to render size: " << width << "x" << height
+              << ", window size: " << windowWidth << "x" << windowHeight << std::endl;
 }
 
 void UI::Init()
@@ -172,32 +182,41 @@ void UI::UpdateTexture()
 }
 void UI::RenderFrameBuffer()
 {
+    glViewport(0, 0, windowWidth, windowHeight);
     glClear(GL_COLOR_BUFFER_BIT);
     shader->Use();
     glBindVertexArray(VAO);
     glBindTexture(GL_TEXTURE_2D, screenTexture);
+    glViewport(renderOffsetX, 0, width, height);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    glViewport(0, 0, windowWidth, windowHeight);
     shader->Unuse();
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
 
 }
-void UI::GuiBegin(int spp, bool &framebufferReset)
+void UI::GuiBegin(int spp, bool &framebufferReset, RenderParam &renderParam, DenoiseParam &denoiseParam, DenoiseTimingStats &denoiseTimingStats, bool &hardResetDenoiseHistory)
 {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
     
-    ImGui::Begin("CudaRayTracer GUI", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-    ImGui::SetWindowPos(ImVec2(0, 0));
-    ImGui::SetWindowSize(ImVec2(350, 300));
+    ImGui::SetNextWindowPos(ImVec2(16.0f, 16.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(320.0f, 255.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowBgAlpha(0.84f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0f, 10.0f));
+    ImGui::Begin("Controls", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
 
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    ImGui::Text("spp %d", spp);
+    ImGui::Text("Frame %.2f ms | %.1f FPS", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::Text("SPP %d", spp);
+    ImGui::TextDisabled("RMB rotate | MMB pan | Wheel zoom");
+    ImGui::Spacing();
+    ImGui::TextDisabled("Camera");
     ImGui::Separator();
+    ImGui::PushItemWidth(-1);
 
-    // Camera
-    ImGui::Text("Camera Transform");
     if(ImGui::DragFloat3("Target", &cameraParam.target(0), 0.05f, -1000.f, 1000.f, "%.2f"))
     {
         framebufferReset = true;
@@ -208,7 +227,7 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
         framebufferReset = true;
 
     }
-    ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Theta: %.1f | Phi: %.1f", cameraParam.theta, cameraParam.phi);
+    ImGui::TextColored(ImVec4(0.72f, 0.72f, 0.72f, 1.0f), "Theta %.1f | Phi %.1f", cameraParam.theta, cameraParam.phi);
     // if (ImGui::Button("Reset Camera", ImVec2(-1, 0))) { // -1 表示宽度填满
     //     cameraParam.target = defaultCameraParam.target;
     //     cameraParam.distance = defaultCameraParam.distance;
@@ -216,23 +235,77 @@ void UI::GuiBegin(int spp, bool &framebufferReset)
     //     cameraParam.phi = defaultCameraParam.phi;
     //     framebufferReset = true;
     // }
+    ImGui::Spacing();
+    ImGui::TextDisabled("Interaction");
     ImGui::Separator();
-
-    // Input Sensitivity
-    ImGui::Text("Input Sensitivity");
     ImGui::SliderFloat("Rotate Speed", &cameraParam.rotateSpeed, 0.1f, 1.0f, "%.2f deg/px");
     ImGui::SliderFloat("Zoom Speed", &cameraParam.zoomSpeed, 0.01f, 0.3f, "%.2f x Dist");
-    ImGui::SliderFloat("move Speed", &cameraParam.moveSpeed, 0.01f, 0.3f, "%.2f x Dist");
+    ImGui::SliderFloat("Move Speed", &cameraParam.moveSpeed, 0.01f, 0.3f, "%.2f x Dist");
 
+    ImGui::Spacing();
+    ImGui::TextDisabled("Display");
     ImGui::Separator();
-    ImGui::Text("render Target Mode");
     const char* items[] = { "Color", "Depth", "Normal", "ID", "Position"};
     static int item_current = 0;
     if (ImGui::Combo("Mode", &item_current, items, IM_ARRAYSIZE(items))) {
         renderParam.renderTargetMode = item_current;
         framebufferReset = true;
     }
+    ImGui::PopItemWidth();
     ImGui::End();
+    ImGui::PopStyleVar(3);
+
+    bool denoiseParamChanged = false;
+    ImGui::SetNextWindowPos(ImVec2(16.0f, 286.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowBgAlpha(0.84f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.0f);
+    ImGui::Begin("SVGF", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::PushItemWidth(220.0f);
+    if(ImGui::Checkbox("Enable Denoise", &renderParam.denoise)){
+        denoiseParamChanged = true;
+    }
+    if(renderParam.denoise){
+        denoiseParamChanged |= ImGui::SliderInt("History Max", &denoiseParam.maxHistoryLength, 1, 64);
+        denoiseParamChanged |= ImGui::SliderFloat("Sigma Light", &denoiseParam.sigmaLight, 1.0f, 20.0f, "%.2f");
+        denoiseParamChanged |= ImGui::SliderFloat("Sigma Normal", &denoiseParam.sigmaNormal, 16.0f, 512.0f, "%.1f");
+        denoiseParamChanged |= ImGui::SliderFloat("Sigma Depth", &denoiseParam.sigmaDepth, 50.0f, 2000.0f, "%.1f");
+        denoiseParamChanged |= ImGui::SliderFloat("Reproj Depth", &denoiseParam.reprojectionDepthFactor, 0.001f, 0.2f, "%.4f");
+        denoiseParamChanged |= ImGui::SliderInt("Atrous Passes", &denoiseParam.atrousIterations, 1, 8);
+        if(ImGui::Button("Reset SVGF Defaults", ImVec2(-1, 0))){
+            denoiseParam.maxHistoryLength = 24;
+            denoiseParam.sigmaLight = 8.f;
+            denoiseParam.sigmaNormal = 256.f;
+            denoiseParam.sigmaDepth = 1000.f;
+            denoiseParam.reprojectionDepthFactor = 0.1f;
+            denoiseParam.atrousIterations = 5;
+            denoiseParamChanged = true;
+        }
+
+        ImGui::Separator();
+        if(denoiseTimingStats.valid){
+            ImGui::Text("SVGF Total %.2f ms", denoiseTimingStats.svgfTotalMs);
+        }else{
+            ImGui::Text("SVGF Total --");
+        }
+        if(ImGui::CollapsingHeader("Timing Details")){
+            ImGui::Text("GBuffer %.2f", denoiseTimingStats.gbufferMs);
+            ImGui::Text("Path Trace %.2f", denoiseTimingStats.pathTraceMs);
+            ImGui::Text("Temporal %.2f", denoiseTimingStats.temporalMs);
+            ImGui::Text("Variance %.2f", denoiseTimingStats.varianceMs);
+            ImGui::Text("Atrous %.2f", denoiseTimingStats.atrousMs);
+            ImGui::Text("Gather %.2f", denoiseTimingStats.gatherMs);
+            ImGui::Text("Frame Total %.2f", denoiseTimingStats.totalMs);
+        }
+    }
+    ImGui::PopItemWidth();
+    ImGui::End();
+    ImGui::PopStyleVar(2);
+
+    if(denoiseParamChanged){
+        framebufferReset = true;
+        hardResetDenoiseHistory = true;
+    }
 
     ImGuiIO& io = ImGui::GetIO();
 

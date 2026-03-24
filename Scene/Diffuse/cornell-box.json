@@ -2,7 +2,7 @@
   "camera": {
     "type": "pinhole",
     "resolution": [
-      1920,
+      1080,
       1080
     ],
     "fov": 39.3077,
@@ -14,7 +14,7 @@
       0,
       -1
     ],
-    "denoise": false
+    "denoise": true
   },
   "textures": [],
   "materials": [

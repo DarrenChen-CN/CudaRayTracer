@@ -41,9 +41,9 @@
 
 ### SVGF
 
-不使用SVGF、`512 spp` 的结果：
+不使用SVGF、`4096 spp` 的结果：
 
-![SVGF Off](Result/svgf-off-512spp.png)
+![SVGF Off](Result/svgf-off-4096spp.png)
 
 使用SVGF结果：
 
