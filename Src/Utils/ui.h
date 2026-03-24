@@ -19,7 +19,7 @@ struct DenoiseParam{
     int maxHistoryLength = 24;
     float sigmaLight = 8.f;
     float sigmaNormal = 256.f;
-    float sigmaDepth = 1000.f;
+    float sigmaDepth = 1.f;
     float reprojectionDepthFactor = 0.1f;
     int atrousIterations = 5;
 };

@@ -267,16 +267,16 @@ void UI::GuiBegin(int spp, bool &framebufferReset, RenderParam &renderParam, Den
     }
     if(renderParam.denoise){
         denoiseParamChanged |= ImGui::SliderInt("History Max", &denoiseParam.maxHistoryLength, 1, 64);
-        denoiseParamChanged |= ImGui::SliderFloat("Sigma Light", &denoiseParam.sigmaLight, 1.0f, 20.0f, "%.2f");
+        denoiseParamChanged |= ImGui::SliderFloat("Sigma Light", &denoiseParam.sigmaLight, 1.0f, 64.0f, "%.2f");
         denoiseParamChanged |= ImGui::SliderFloat("Sigma Normal", &denoiseParam.sigmaNormal, 16.0f, 512.0f, "%.1f");
-        denoiseParamChanged |= ImGui::SliderFloat("Sigma Depth", &denoiseParam.sigmaDepth, 50.0f, 2000.0f, "%.1f");
+        denoiseParamChanged |= ImGui::SliderFloat("Sigma Depth", &denoiseParam.sigmaDepth, 1.0f, 256.0f, "%.1f");
         denoiseParamChanged |= ImGui::SliderFloat("Reproj Depth", &denoiseParam.reprojectionDepthFactor, 0.001f, 0.2f, "%.4f");
         denoiseParamChanged |= ImGui::SliderInt("Atrous Passes", &denoiseParam.atrousIterations, 1, 8);
         if(ImGui::Button("Reset SVGF Defaults", ImVec2(-1, 0))){
             denoiseParam.maxHistoryLength = 24;
             denoiseParam.sigmaLight = 8.f;
             denoiseParam.sigmaNormal = 256.f;
-            denoiseParam.sigmaDepth = 1000.f;
+            denoiseParam.sigmaDepth = 1.f;
             denoiseParam.reprojectionDepthFactor = 0.1f;
             denoiseParam.atrousIterations = 5;
             denoiseParamChanged = true;

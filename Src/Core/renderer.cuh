@@ -76,19 +76,19 @@ cudaTextureObject_t CreateTextureObject(cudaArray_t cuArray, cudaTextureAddressM
     return texObj;
 }
 
-__device__ __forceinline__ int BufferYToGBufferY(int bufferY, int height)
+__device__ int BufferYToGBufferY(int bufferY, int height)
 {
     return bufferY;
 }
 
-__device__ __forceinline__ Vec2f BufferIndexToGBufferSamplePos(int index, int width, int height)
+__device__ Vec2f BufferIndexToGBufferSamplePos(int index, int width, int height)
 {
     int x = index % width;
     int y = index / width;
     return Vec2f((float)x + 0.5f, (float)BufferYToGBufferY(y, height) + 0.5f);
 }
 
-__device__ __forceinline__ int GBufferPixelToBufferIndex(int x, int y, int width, int height)
+__device__ int GBufferPixelToBufferIndex(int x, int y, int width, int height)
 {
     return y * width + x;
 }
@@ -441,6 +441,8 @@ __global__ void ShadingKernel(RenderSegment *segments, RenderParam renderParam, 
 
 __device__ bool GetLastFramePos(int index, RenderParam renderParam, GBuffer currentGBuffer, GBuffer lastGBuffer, Vec2f &pixelPos, float reprojectionDepthFactor){
     int width = renderParam.width, height = renderParam.height;
+
+    // current frame gbuffer info
     Vec2f currentPixelPos = BufferIndexToGBufferSamplePos(index, width, height);
     float4 positionTriID = tex2D<float4>(currentGBuffer.cudaTexObjPositionTriID, currentPixelPos(0), currentPixelPos(1));
     ushort4 baryMeshID = tex2D<ushort4>(currentGBuffer.cudaTexObjBaryMeshID, currentPixelPos(0), currentPixelPos(1));
@@ -451,7 +453,11 @@ __device__ bool GetLastFramePos(int index, RenderParam renderParam, GBuffer curr
     Vec3f normal = Vec3f(normalMatID.x / 65535.0f * 2.f - 1.f, normalMatID.y / 65535.0f * 2.f - 1.f, normalMatID.z / 65535.0f * 2.f - 1.f);
     float depth = motionDepth.z;
     float dz = motionDepth.w;
+    int triangleID = (int)positionTriID.w;
+    int bary[3] = { (int)baryMeshID.x, (int)baryMeshID.y, (int)baryMeshID.z };
 
+
+    // compute last frame pixel position according to motion vector and depth
     Vec2f motionVec = Vec2f(motionDepth.x * width * 0.5f, motionDepth.y * height * 0.5f);
     pixelPos = Vec2f(currentPixelPos(0) - motionVec(0), currentPixelPos(1) - motionVec(1));
     if(pixelPos(0) < 0.5f || pixelPos(0) >= width - 0.5f || pixelPos(1) < 0.5f || pixelPos(1) >= height - 0.5f){
@@ -473,12 +479,15 @@ __device__ bool GetLastFramePos(int index, RenderParam renderParam, GBuffer curr
     Vec3f lastNormal = Vec3f(lastNormalMatID.x / 65535.0f * 2.f - 1.f, lastNormalMatID.y / 65535.0f * 2.f - 1.f, lastNormalMatID.z / 65535.0f * 2.f - 1.f);
     float lastDepth = lastMotionDepth.z;
     Vec3f lastPosition = Vec3f(lastPositionTriID.x, lastPositionTriID.y, lastPositionTriID.z);
+    int lastTriangleID = (int)lastPositionTriID.w;
+    int lastBary[3] = { (int)lastBaryMeshID.x, (int)lastBaryMeshID.y, (int)lastBaryMeshID.z };
 
     float dotNormal = normal.dot(lastNormal);
     float depthDiff = fabsf(depth - lastDepth);
     float normalThreshold = 0.9;
     float pixelDistance = sqrtf(motionVec(0) * motionVec(0) + motionVec(1) * motionVec(1));
     float depthThreshold = fmaxf(dz, lastMotionDepth.w) * (pixelDistance + 1.f) + reprojectionDepthFactor * fmaxf(depth, lastDepth);
+
 
     if(meshID != lastMeshID || materialID != lastMaterialID || dotNormal < normalThreshold || depthDiff > depthThreshold){
         return false;
@@ -550,7 +559,6 @@ __device__ void TemporalDenoising(int index, RenderBuffer currentBuffer, RenderB
     }
     
 }
-
 __global__ void TemporalDenoiseKernel(DenoiseParam denoiseParam, CameraParam cameraParam, RenderParam renderParam, RenderBuffer currentBuffer, RenderBuffer lastBuffer, GBuffer currentGBuffer, GBuffer lastGBuffer, bool firstFrame)
 {
     int width = renderParam.width, height = renderParam.height;
@@ -601,7 +609,7 @@ __global__ void ComputeVarianceKernel(DenoiseParam denoiseParam, RenderParam ren
 
         int halfKernel = kernelSize / 2;
 
-        float sigmaDepth = 3 * fmaxf(dz, 1e-4f);
+        float sigmaDepth = denoiseParam.sigmaDepth * fmaxf(dz, 1e-4f);
         for(int kj = -halfKernel; kj <= halfKernel; kj++){
             for(int ki = -halfKernel; ki <= halfKernel; ki++){
                 int ni = i + ki;
@@ -703,16 +711,37 @@ __global__ void AtrousKernel(DenoiseParam denoiseParam, CameraParam cameraParam,
     float centerDepth = motionDepth.z;
     float dz = fmaxf(motionDepth.w, 1e-4f); 
 
-        ushort4 normalMatID = tex2D<ushort4>(gBuffer.cudaTexObjNormalMatID, sampleXf, sampleYf);
-        ushort4 baryMeshID = tex2D<ushort4>(gBuffer.cudaTexObjBaryMeshID, sampleXf, sampleYf);
-        int centerMaterialID = normalMatID.w;
-        int centerMeshID = baryMeshID.w;
+    ushort4 normalMatID = tex2D<ushort4>(gBuffer.cudaTexObjNormalMatID, sampleXf, sampleYf);
+    ushort4 baryMeshID = tex2D<ushort4>(gBuffer.cudaTexObjBaryMeshID, sampleXf, sampleYf);
+    int centerMaterialID = normalMatID.w;
+    int centerMeshID = baryMeshID.w;
     Vec3f centerNormal = Vec3f(normalMatID.x / 65535.0f * 2.f - 1.f, normalMatID.y / 65535.0f * 2.f - 1.f, normalMatID.z / 65535.0f * 2.f - 1.f).normalized();
 
     float centerDirectVariance = fmaxf(0.0f, renderBuffer.directLightingBuffer[idx * 4 + 3]);
     float centerIndirectVariance = fmaxf(0.0f, renderBuffer.indirectLightingBuffer[idx * 4 + 3]);
-    float stdDevDirect = sqrtf(centerDirectVariance) + 1e-3f; 
-    float stdDevIndirect = sqrtf(centerIndirectVariance) + 1e-3f; 
+    const float varianceKernelWeights[2] = {0.5f, 0.25f};
+    float filteredDirectVariance = 0.f;
+    float filteredIndirectVariance = 0.f;
+    float filteredVarianceWeight = 0.f;
+    for(int vj = -1; vj <= 1; vj++){
+        for(int vi = -1; vi <= 1; vi++){
+            int vsi = i + vi;
+            int vsj = j + vj;
+            if(vsi < 0 || vsi >= width || vsj < 0 || vsj >= height){
+                continue;
+            }
+            int vidx = vsj * width + vsi;
+            float vWeight = varianceKernelWeights[abs(vi)] * varianceKernelWeights[abs(vj)];
+            filteredDirectVariance += vWeight * fmaxf(0.0f, renderBuffer.directLightingBuffer[vidx * 4 + 3]);
+            filteredIndirectVariance += vWeight * fmaxf(0.0f, renderBuffer.indirectLightingBuffer[vidx * 4 + 3]);
+            filteredVarianceWeight += vWeight;
+        }
+    }
+    filteredVarianceWeight = fmaxf(filteredVarianceWeight, 1e-6f);
+    filteredDirectVariance /= filteredVarianceWeight;
+    filteredIndirectVariance /= filteredVarianceWeight;
+    float stdDevDirect = sqrtf(filteredDirectVariance) + 1e-3f; 
+    float stdDevIndirect = sqrtf(filteredIndirectVariance) + 1e-3f; 
 
     Vec3f finalDirectColor(0.f, 0.f, 0.f);
     Vec3f finalIndirectColor(0.f, 0.f, 0.f);
@@ -1402,3 +1431,8 @@ public:
     bool framebufferReset = false;
     Shader *gBufferShader;
 };
+
+
+
+
+
