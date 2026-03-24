@@ -440,61 +440,85 @@ __global__ void ShadingKernel(RenderSegment *segments, RenderParam renderParam, 
 }
 
 __device__ bool GetLastFramePos(int index, RenderParam renderParam, GBuffer currentGBuffer, GBuffer lastGBuffer, Vec2f &pixelPos, float reprojectionDepthFactor){
+    (void)lastGBuffer;
+    (void)reprojectionDepthFactor;
     int width = renderParam.width, height = renderParam.height;
-
-    // current frame gbuffer info
     Vec2f currentPixelPos = BufferIndexToGBufferSamplePos(index, width, height);
-    float4 positionTriID = tex2D<float4>(currentGBuffer.cudaTexObjPositionTriID, currentPixelPos(0), currentPixelPos(1));
-    ushort4 baryMeshID = tex2D<ushort4>(currentGBuffer.cudaTexObjBaryMeshID, currentPixelPos(0), currentPixelPos(1));
-    ushort4 normalMatID = tex2D<ushort4>(currentGBuffer.cudaTexObjNormalMatID, currentPixelPos(0), currentPixelPos(1));
     float4 motionDepth = tex2D<float4>(currentGBuffer.cudaTexObjMotionDepth, currentPixelPos(0), currentPixelPos(1));
-    Vec3f position = Vec3f(positionTriID.x, positionTriID.y, positionTriID.z);
-    int meshID = baryMeshID.w;
-    Vec3f normal = Vec3f(normalMatID.x / 65535.0f * 2.f - 1.f, normalMatID.y / 65535.0f * 2.f - 1.f, normalMatID.z / 65535.0f * 2.f - 1.f);
-    float depth = motionDepth.z;
-    float dz = motionDepth.w;
-    int triangleID = (int)positionTriID.w;
-    int bary[3] = { (int)baryMeshID.x, (int)baryMeshID.y, (int)baryMeshID.z };
-
-
-    // compute last frame pixel position according to motion vector and depth
     Vec2f motionVec = Vec2f(motionDepth.x * width * 0.5f, motionDepth.y * height * 0.5f);
     pixelPos = Vec2f(currentPixelPos(0) - motionVec(0), currentPixelPos(1) - motionVec(1));
-    if(pixelPos(0) < 0.5f || pixelPos(0) >= width - 0.5f || pixelPos(1) < 0.5f || pixelPos(1) >= height - 0.5f){
+    return pixelPos(0) >= 0.5f && pixelPos(0) < width - 0.5f && pixelPos(1) >= 0.5f && pixelPos(1) < height - 0.5f;
+}
+
+__device__ __forceinline__ Vec3f DecodeTemporalNormal(const ushort4 &normalMatID)
+{
+    return Vec3f(normalMatID.x / 65535.0f * 2.f - 1.f,
+                 normalMatID.y / 65535.0f * 2.f - 1.f,
+                 normalMatID.z / 65535.0f * 2.f - 1.f).normalized();
+}
+
+__device__ __forceinline__ bool IsValidTemporalReprojectionTap(int tapX,
+                                                               int tapY,
+                                                               int width,
+                                                               int height,
+                                                               int meshID,
+                                                               int materialID,
+                                                               int triangleID,
+                                                               Vec3f currentNormal,
+                                                               float currentDepth,
+                                                               float currentDz,
+                                                               float pixelDistance,
+                                                               GBuffer lastGBuffer,
+                                                               float reprojectionDepthFactor)
+{
+    if(tapX < 0 || tapX >= width || tapY < 0 || tapY >= height){
         return false;
     }
 
-    int lastPixelX = max(0, min(width - 1, (int)floorf(pixelPos(0))));
-    int lastPixelY = max(0, min(height - 1, (int)floorf(pixelPos(1))));
-    Vec2f lastPixelPos = Vec2f((float)lastPixelX + 0.5f, (float)lastPixelY + 0.5f);
-
-    // get last frame gbuffer info
-    float4 lastPositionTriID = tex2D<float4>(lastGBuffer.cudaTexObjPositionTriID, lastPixelPos(0), lastPixelPos(1));
-    ushort4 lastBaryMeshID = tex2D<ushort4>(lastGBuffer.cudaTexObjBaryMeshID, lastPixelPos(0), lastPixelPos(1));
-    ushort4 lastNormalMatID = tex2D<ushort4>(lastGBuffer.cudaTexObjNormalMatID, lastPixelPos(0), lastPixelPos(1));
-    float4 lastMotionDepth = tex2D<float4>(lastGBuffer.cudaTexObjMotionDepth, lastPixelPos(0), lastPixelPos(1));
+    float sampleXf = (float)tapX + 0.5f;
+    float sampleYf = (float)BufferYToGBufferY(tapY, height) + 0.5f;
+    float4 lastPositionTriID = tex2D<float4>(lastGBuffer.cudaTexObjPositionTriID, sampleXf, sampleYf);
+    ushort4 lastBaryMeshID = tex2D<ushort4>(lastGBuffer.cudaTexObjBaryMeshID, sampleXf, sampleYf);
+    ushort4 lastNormalMatID = tex2D<ushort4>(lastGBuffer.cudaTexObjNormalMatID, sampleXf, sampleYf);
+    float4 lastMotionDepth = tex2D<float4>(lastGBuffer.cudaTexObjMotionDepth, sampleXf, sampleYf);
     int lastMeshID = lastBaryMeshID.w;
-    int materialID = normalMatID.w;
     int lastMaterialID = lastNormalMatID.w;
-    Vec3f lastNormal = Vec3f(lastNormalMatID.x / 65535.0f * 2.f - 1.f, lastNormalMatID.y / 65535.0f * 2.f - 1.f, lastNormalMatID.z / 65535.0f * 2.f - 1.f);
-    float lastDepth = lastMotionDepth.z;
-    Vec3f lastPosition = Vec3f(lastPositionTriID.x, lastPositionTriID.y, lastPositionTriID.z);
     int lastTriangleID = (int)lastPositionTriID.w;
-    int lastBary[3] = { (int)lastBaryMeshID.x, (int)lastBaryMeshID.y, (int)lastBaryMeshID.z };
+    Vec3f lastNormal = DecodeTemporalNormal(lastNormalMatID);
+    float lastDepth = lastMotionDepth.z;
+    float dotNormal = currentNormal.dot(lastNormal);
+    float depthDiff = fabsf(currentDepth - lastDepth);
+    float depthThreshold = fmaxf(currentDz, lastMotionDepth.w) * (pixelDistance + 1.f) + reprojectionDepthFactor * fmaxf(currentDepth, lastDepth);
+    return meshID == lastMeshID &&
+           materialID == lastMaterialID &&
+           triangleID == lastTriangleID &&
+           dotNormal >= 0.9f &&
+           depthDiff <= depthThreshold;
+}
 
-    float dotNormal = normal.dot(lastNormal);
-    float depthDiff = fabsf(depth - lastDepth);
-    float normalThreshold = 0.9;
-    float pixelDistance = sqrtf(motionVec(0) * motionVec(0) + motionVec(1) * motionVec(1));
-    float depthThreshold = fmaxf(dz, lastMotionDepth.w) * (pixelDistance + 1.f) + reprojectionDepthFactor * fmaxf(depth, lastDepth);
-
-
-    if(meshID != lastMeshID || materialID != lastMaterialID || dotNormal < normalThreshold || depthDiff > depthThreshold){
-        return false;
-    }
-
-    pixelPos = lastPixelPos;
-    return true;
+__device__ __forceinline__ void AccumulateTemporalReprojectionTap(float weight,
+                                                                  int tapIndex,
+                                                                  RenderBuffer lastBuffer,
+                                                                  float2 *lastDirectMomentsBuffer,
+                                                                  float2 *lastIndirectMomentsBuffer,
+                                                                  int *lastHistoryLengthBuffer,
+                                                                  Vec3f &directColor,
+                                                                  Vec3f &indirectColor,
+                                                                  float2 &directMoment,
+                                                                  float2 &indirectMoment,
+                                                                  float &historyLength)
+{
+    directColor += Vec3f(lastBuffer.directLightingBuffer[tapIndex * 4 + 0],
+                         lastBuffer.directLightingBuffer[tapIndex * 4 + 1],
+                         lastBuffer.directLightingBuffer[tapIndex * 4 + 2]) * weight;
+    indirectColor += Vec3f(lastBuffer.indirectLightingBuffer[tapIndex * 4 + 0],
+                           lastBuffer.indirectLightingBuffer[tapIndex * 4 + 1],
+                           lastBuffer.indirectLightingBuffer[tapIndex * 4 + 2]) * weight;
+    directMoment.x += lastDirectMomentsBuffer[tapIndex].x * weight;
+    directMoment.y += lastDirectMomentsBuffer[tapIndex].y * weight;
+    indirectMoment.x += lastIndirectMomentsBuffer[tapIndex].x * weight;
+    indirectMoment.y += lastIndirectMomentsBuffer[tapIndex].y * weight;
+    historyLength += (float)lastHistoryLengthBuffer[tapIndex] * weight;
 }
 
 __device__ void TemporalDenoising(int index, RenderBuffer currentBuffer, RenderBuffer lastBuffer, DenoiseParam denoiseParam, CameraParam cameraParam, RenderParam renderParam, GBuffer currentGBuffer, GBuffer lastGBuffer, bool firstFrame)
@@ -517,33 +541,125 @@ __device__ void TemporalDenoising(int index, RenderBuffer currentBuffer, RenderB
         return;
     }
 
+    int width = renderParam.width, height = renderParam.height;
+    Vec2f currentPixelPos = BufferIndexToGBufferSamplePos(index, width, height);
+    float4 positionTriID = tex2D<float4>(currentGBuffer.cudaTexObjPositionTriID, currentPixelPos(0), currentPixelPos(1));
+    ushort4 baryMeshID = tex2D<ushort4>(currentGBuffer.cudaTexObjBaryMeshID, currentPixelPos(0), currentPixelPos(1));
+    ushort4 normalMatID = tex2D<ushort4>(currentGBuffer.cudaTexObjNormalMatID, currentPixelPos(0), currentPixelPos(1));
+    float4 motionDepth = tex2D<float4>(currentGBuffer.cudaTexObjMotionDepth, currentPixelPos(0), currentPixelPos(1));
+    int materialID = normalMatID.w;
+    int meshID = baryMeshID.w;
+    int triangleID = (int)positionTriID.w;
+    Vec3f currentNormal = DecodeTemporalNormal(normalMatID);
+    float currentDepth = motionDepth.z;
+    float currentDz = motionDepth.w;
+    Vec2f motionVec = Vec2f(motionDepth.x * width * 0.5f, motionDepth.y * height * 0.5f);
+    float pixelDistance = sqrtf(motionVec(0) * motionVec(0) + motionVec(1) * motionVec(1));
+
     Vec2f pixelPos;
-    bool valid = GetLastFramePos(index, renderParam, currentGBuffer, lastGBuffer, pixelPos, denoiseParam.reprojectionDepthFactor);
-    int lastFrameIndex = index;
-    if(valid){
-        int lastFrameX = max(0, min(renderParam.width - 1, (int)floorf(pixelPos(0))));
-        int lastFrameY = max(0, min(renderParam.height - 1, (int)floorf(pixelPos(1))));
-        lastFrameIndex = GBufferPixelToBufferIndex(lastFrameX, lastFrameY, renderParam.width, renderParam.height);
+    bool valid = false;
+    Vec3f reprojectedDirectColor(0.f, 0.f, 0.f);
+    Vec3f reprojectedIndirectColor(0.f, 0.f, 0.f);
+    float2 reprojectedDirectMoment = make_float2(0.f, 0.f);
+    float2 reprojectedIndirectMoment = make_float2(0.f, 0.f);
+    float reprojectedHistoryLength = 0.f;
+
+    if(GetLastFramePos(index, renderParam, currentGBuffer, lastGBuffer, pixelPos, denoiseParam.reprojectionDepthFactor)){
+        float pixelX = pixelPos(0) - 0.5f;
+        float pixelY = pixelPos(1) - 0.5f;
+        int baseX = (int)floorf(pixelX);
+        int baseY = (int)floorf(pixelY);
+        float fracX = pixelX - (float)baseX;
+        float fracY = pixelY - (float)baseY;
+        float totalWeight = 0.f;
+        bool all2x2Valid = true;
+
+        for(int oy = 0; oy <= 1; oy++){
+            for(int ox = 0; ox <= 1; ox++){
+                int tapX = baseX + ox;
+                int tapY = baseY + oy;
+                if(!IsValidTemporalReprojectionTap(tapX, tapY, width, height, meshID, materialID, triangleID, currentNormal, currentDepth, currentDz, pixelDistance, lastGBuffer, denoiseParam.reprojectionDepthFactor)){
+                    all2x2Valid = false;
+                    continue;
+                }
+                float weightX = ox == 0 ? (1.f - fracX) : fracX;
+                float weightY = oy == 0 ? (1.f - fracY) : fracY;
+                float weight = weightX * weightY;
+                int tapIndex = GBufferPixelToBufferIndex(tapX, tapY, width, height);
+                AccumulateTemporalReprojectionTap(weight, tapIndex, lastBuffer, lastDirectMomentsBuffer, lastIndirectMomentsBuffer, lastHistoryLengthBuffer, reprojectedDirectColor, reprojectedIndirectColor, reprojectedDirectMoment, reprojectedIndirectMoment, reprojectedHistoryLength);
+                totalWeight += weight;
+            }
+        }
+
+        if(all2x2Valid && totalWeight > 1e-6f){
+            float invWeight = 1.f / totalWeight;
+            reprojectedDirectColor *= invWeight;
+            reprojectedIndirectColor *= invWeight;
+            reprojectedDirectMoment.x *= invWeight;
+            reprojectedDirectMoment.y *= invWeight;
+            reprojectedIndirectMoment.x *= invWeight;
+            reprojectedIndirectMoment.y *= invWeight;
+            reprojectedHistoryLength *= invWeight;
+            valid = true;
+        }else{
+            reprojectedDirectColor = Vec3f(0.f, 0.f, 0.f);
+            reprojectedIndirectColor = Vec3f(0.f, 0.f, 0.f);
+            reprojectedDirectMoment = make_float2(0.f, 0.f);
+            reprojectedIndirectMoment = make_float2(0.f, 0.f);
+            reprojectedHistoryLength = 0.f;
+            totalWeight = 0.f;
+            const float kernelWeights[2] = {0.5f, 0.25f};
+            int centerX = max(0, min(width - 1, (int)floorf(pixelPos(0))));
+            int centerY = max(0, min(height - 1, (int)floorf(pixelPos(1))));
+            for(int oy = -1; oy <= 1; oy++){
+                for(int ox = -1; ox <= 1; ox++){
+                    int tapX = centerX + ox;
+                    int tapY = centerY + oy;
+                    if(!IsValidTemporalReprojectionTap(tapX, tapY, width, height, meshID, materialID, triangleID, currentNormal, currentDepth, currentDz, pixelDistance, lastGBuffer, denoiseParam.reprojectionDepthFactor)){
+                        continue;
+                    }
+                    float weight = kernelWeights[abs(ox)] * kernelWeights[abs(oy)];
+                    int tapIndex = GBufferPixelToBufferIndex(tapX, tapY, width, height);
+                    AccumulateTemporalReprojectionTap(weight, tapIndex, lastBuffer, lastDirectMomentsBuffer, lastIndirectMomentsBuffer, lastHistoryLengthBuffer, reprojectedDirectColor, reprojectedIndirectColor, reprojectedDirectMoment, reprojectedIndirectMoment, reprojectedHistoryLength);
+                    totalWeight += weight;
+                }
+            }
+            if(totalWeight > 1e-6f){
+                float invWeight = 1.f / totalWeight;
+                reprojectedDirectColor *= invWeight;
+                reprojectedIndirectColor *= invWeight;
+                reprojectedDirectMoment.x *= invWeight;
+                reprojectedDirectMoment.y *= invWeight;
+                reprojectedIndirectMoment.x *= invWeight;
+                reprojectedIndirectMoment.y *= invWeight;
+                reprojectedHistoryLength *= invWeight;
+                valid = true;
+            }
+        }
     }
 
-    int historyLength = valid ? min(lastHistoryLengthBuffer[lastFrameIndex] + 1, denoiseParam.maxHistoryLength) : 1;
+    int historyLength = 1;
+    if(valid){
+        int lastHistoryLength = max(1, (int)floorf(reprojectedHistoryLength + 0.5f));
+        historyLength = min(lastHistoryLength + 1, denoiseParam.maxHistoryLength);
+    }
     float alpha = valid ? 1.f / historyLength : 1.0f;
 
     Vec3f currentDirectColor = Vec3f(currentBuffer.directLightingBuffer[index * 4 + 0], currentBuffer.directLightingBuffer[index * 4 + 1], currentBuffer.directLightingBuffer[index * 4 + 2]);
     Vec3f currentIndirectColor = Vec3f(currentBuffer.indirectLightingBuffer[index * 4 + 0], currentBuffer.indirectLightingBuffer[index * 4 + 1], currentBuffer.indirectLightingBuffer[index * 4 + 2]);
     float currentDirectLuminance = Luminance(currentDirectColor);
     float currentIndirectLuminance = Luminance(currentIndirectColor);
-    currentBuffer.directLightingBuffer[index * 4 + 0] = alpha * currentBuffer.directLightingBuffer[index * 4 + 0] + (1 - alpha) * lastBuffer.directLightingBuffer[lastFrameIndex * 4 + 0];
-    currentBuffer.directLightingBuffer[index * 4 + 1] = alpha * currentBuffer.directLightingBuffer[index * 4 + 1] + (1 - alpha) * lastBuffer.directLightingBuffer[lastFrameIndex * 4 + 1];
-    currentBuffer.directLightingBuffer[index * 4 + 2] = alpha * currentBuffer.directLightingBuffer[index * 4 + 2] + (1 - alpha) * lastBuffer.directLightingBuffer[lastFrameIndex * 4 + 2];
-    currentBuffer.indirectLightingBuffer[index * 4 + 0] = alpha * currentBuffer.indirectLightingBuffer[index * 4 + 0] + (1 - alpha) * lastBuffer.indirectLightingBuffer[lastFrameIndex * 4 + 0];
-    currentBuffer.indirectLightingBuffer[index * 4 + 1] = alpha * currentBuffer.indirectLightingBuffer[index * 4 + 1] + (1 - alpha) * lastBuffer.indirectLightingBuffer[lastFrameIndex * 4 + 1];
-    currentBuffer.indirectLightingBuffer[index * 4 + 2] = alpha * currentBuffer.indirectLightingBuffer[index * 4 + 2] + (1 - alpha) * lastBuffer.indirectLightingBuffer[lastFrameIndex * 4 + 2];
+    currentBuffer.directLightingBuffer[index * 4 + 0] = alpha * currentBuffer.directLightingBuffer[index * 4 + 0] + (1 - alpha) * reprojectedDirectColor(0);
+    currentBuffer.directLightingBuffer[index * 4 + 1] = alpha * currentBuffer.directLightingBuffer[index * 4 + 1] + (1 - alpha) * reprojectedDirectColor(1);
+    currentBuffer.directLightingBuffer[index * 4 + 2] = alpha * currentBuffer.directLightingBuffer[index * 4 + 2] + (1 - alpha) * reprojectedDirectColor(2);
+    currentBuffer.indirectLightingBuffer[index * 4 + 0] = alpha * currentBuffer.indirectLightingBuffer[index * 4 + 0] + (1 - alpha) * reprojectedIndirectColor(0);
+    currentBuffer.indirectLightingBuffer[index * 4 + 1] = alpha * currentBuffer.indirectLightingBuffer[index * 4 + 1] + (1 - alpha) * reprojectedIndirectColor(1);
+    currentBuffer.indirectLightingBuffer[index * 4 + 2] = alpha * currentBuffer.indirectLightingBuffer[index * 4 + 2] + (1 - alpha) * reprojectedIndirectColor(2);
 
     float2 &directMoment = currentDirectMoments[index];
     float2 &indirectMoment = currentIndirectMoments[index];
-    float2 lastDirectMoment = valid ? lastDirectMomentsBuffer[lastFrameIndex] : make_float2(0.f, 0.f);
-    float2 lastIndirectMoment = valid ? lastIndirectMomentsBuffer[lastFrameIndex] : make_float2(0.f, 0.f);
+    float2 lastDirectMoment = valid ? reprojectedDirectMoment : make_float2(0.f, 0.f);
+    float2 lastIndirectMoment = valid ? reprojectedIndirectMoment : make_float2(0.f, 0.f);
     directMoment.x = alpha * currentDirectLuminance + (1 - alpha) * lastDirectMoment.x;
     directMoment.y = alpha * currentDirectLuminance * currentDirectLuminance + (1 - alpha) * lastDirectMoment.y;
     indirectMoment.x = alpha * currentIndirectLuminance + (1 - alpha) * lastIndirectMoment.x;
@@ -1431,6 +1547,7 @@ public:
     bool framebufferReset = false;
     Shader *gBufferShader;
 };
+
 
 
 
